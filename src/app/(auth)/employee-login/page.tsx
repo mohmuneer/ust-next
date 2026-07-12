@@ -100,6 +100,7 @@ export default function EmployeeLoginPage() {
               <input
                 {...register('employee_code')}
                 type="text"
+                autoComplete="username"
                 placeholder="الكود الوظيفي"
                 className="w-full h-12 pr-12 pl-4 border border-gray-200 rounded-xl bg-gray-50/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-white transition-all shadow-sm"
               />
@@ -111,6 +112,7 @@ export default function EmployeeLoginPage() {
               <input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 placeholder="كلمة المرور"
                 className="w-full h-12 pr-12 pl-12 border border-gray-200 rounded-xl bg-gray-50/80 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-white transition-all shadow-sm"
               />

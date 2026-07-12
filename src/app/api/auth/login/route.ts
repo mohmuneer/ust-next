@@ -7,6 +7,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'ust-next-secret-key-2026'
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        { success: false, message: 'DATABASE_URL not configured' },
+        { status: 500 }
+      )
+    }
+
     const body = await request.json()
     const { email, password } = body
 

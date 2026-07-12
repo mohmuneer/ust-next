@@ -158,6 +158,7 @@ export default function LoginPage() {
               <input
                 {...userForm.register('email')}
                 type="email"
+                autoComplete="email"
                 placeholder="البريد الإلكتروني"
                 className="w-full h-12 pr-12 pl-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
               />
@@ -170,6 +171,7 @@ export default function LoginPage() {
               <input
                 {...userForm.register('password')}
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 placeholder="كلمة المرور"
                 className="w-full h-12 pr-12 pl-12 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
               />
@@ -195,6 +197,7 @@ export default function LoginPage() {
               <input
                 {...employeeForm.register('employee_code')}
                 type="text"
+                autoComplete="username"
                 placeholder="الكود الوظيفي"
                 className="w-full h-12 pr-12 pl-4 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
               />
@@ -207,6 +210,7 @@ export default function LoginPage() {
               <input
                 {...employeeForm.register('password')}
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 placeholder="كلمة المرور"
                 className="w-full h-12 pr-12 pl-12 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
               />

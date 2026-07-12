@@ -1,13 +1,17 @@
-import { neon } from '@neondatabase/serverless'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+let cachedSql: any = null
 
-function getSql() {
+async function getSql() {
+  if (cachedSql) return cachedSql
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('DATABASE_URL is not set')
-  return neon(url)
+  const { neon } = await import('@neondatabase/serverless')
+  cachedSql = neon(url)
+  return cachedSql
 }
 
 export async function query(text: string, params?: unknown[]) {
-  const sql = getSql()
+  const sql = await getSql()
   const rows = await sql.query(text, params ?? [])
   return { rows }
 }

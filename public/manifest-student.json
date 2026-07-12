@@ -1,0 +1,28 @@
+{
+  "name": "UST بوابة الطالب",
+  "short_name": "UST طالب",
+  "description": "جامعة العلوم والتكنولوجيا - بوابة الطالب الإلكترونية",
+  "start_url": "/student/dashboard",
+  "display": "standalone",
+  "background_color": "#038ed3",
+  "theme_color": "#038ed3",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "ar",
+  "scope": "/student/",
+  "icons": [
+    {
+      "src": "/ust-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ust-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"]
+}

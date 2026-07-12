@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: #038ed3;
+  --color-primary-dark: #025a87;
+  --color-secondary: #6c757d;
+  --color-success: #28a745;
+  --color-danger: #dc3545;
+  --color-warning: #ffc107;
+  --color-info: #17a2b8;
+  --color-border: #e9ecef;
+  --color-muted: #f8f9fa;
+  --color-muted-foreground: #6c757d;
+  --color-accent: #f0f2f5;
+  --color-card: #ffffff;
+  --color-card-foreground: #171717;
+  --color-input: #e9ecef;
+  --font-sans: 'Cairo', 'Tajawal', sans-serif;
+  --font-mono: 'Courier New', monospace;
+}
+
+:root {
+  --background: #f0f2f5;
+  --foreground: #171717;
+  --sidebar-width: 300px;
+  --sidebar-collapsed-width: 80px;
+  --header-height: 64px;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --color-border: #334155;
+  --color-muted: #1e293b;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #1e293b;
+  --color-card: #1e293b;
+  --color-card-foreground: #f1f5f9;
+  --color-input: #334155;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+}
+
+html, body {
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+::-webkit-scrollbar { display: none; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.zoom-in-95 {
+  animation: zoomIn 0.2s ease-out;
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-warning {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 5px rgba(255, 193, 7, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+
+.pulse-warning {
+  animation: pulse-warning 2s infinite;
+}

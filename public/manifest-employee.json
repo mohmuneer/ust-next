@@ -1,0 +1,28 @@
+{
+  "name": "UST لوحة التحكم",
+  "short_name": "UST موظف",
+  "description": "جامعة العلوم والتكنولوجيا - لوحة تحكم الموظفين",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#025a87",
+  "theme_color": "#025a87",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "ar",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/ust-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ust-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"]
+}

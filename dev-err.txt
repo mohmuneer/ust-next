@@ -1,0 +1,546 @@
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackErrorBoundary pathname="/study-sch..." notFound={{...}} forbidden={undefined} ...>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/study-sch..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="layout" pagePath="(dashboard...">
+              <SegmentTrieNode>
+              <script>
+              <script>
+              <script>
+              <ClientSegmentRoot Component={function DashboardLayout} slots={{children:{...}}} ...>
+                <DashboardLayout params={Promise}>
+                  <ThemeProvider>
+                    <div className="min-h-scre...">
+                      <Header>
+                        <header style={{...}} className="fixed top-...">
+                          <div className="flex items...">
+                            <div className="flex items...">
+                              <button
+                                onClick={function toggleSidebar}
+                                className="p-2 rounded-xl transition-all duration-200"
+                                style={{color:"#1a1a2e"}}
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="pmqcrj"
+                              >
+                              ...
+                            <div className="flex items...">
+                              <button>
+                              <button
+                                onClick={function onClick}
+                                className="p-2 rounded-xl transition-all duration-200"
+                                style={{color:"#1a1a2e"}}
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="znpoc"
+                              >
+                              <button
+                                onClick={function Header.useCallback[toggleFullscreen]}
+                                className="p-2 rounded-xl transition-all duration-200 hidden sm:flex"
+                                style={{color:"#1a1a2e"}}
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="km8hyk"
+                              >
+                              <LinkComponent>
+                              <div className="relative">
+                                <button
+                                  onClick={function onClick}
+                                  className={"flex items-center gap-2 p-1.5 pr-2 rounded-xl transition-all duration-2..."}
+                                  style={{color:"#1a1a2e"}}
+                                  onMouseEnter={function onMouseEnter}
+                                  onMouseLeave={function onMouseLeave}
+-                                 fdprocessedid="tidehc"
+                                >
+                      <Sidebar>
+                        <button>
+                        <aside style={{...}} className="fixed top-...">
+                          <div className="flex items..." style={{...}}>
+                            <div>
+                            <button
+                              onClick={function onClick}
+                              className="p-1.5 rounded-lg transition-colors mr-auto"
+                              style={{color:"#ffffff"}}
+                              onMouseEnter={function onMouseEnter}
+                              onMouseLeave={function onMouseLeave}
+-                             fdprocessedid="q7lp0f"
+                            >
+                          <div className="p-3">
+                            <div className="relative">
+                              <Search>
+                              <input
+                                type="text"
+                                value=""
+                                onChange={function onChange}
+                                placeholder="بحث في القائمة..."
+                                style={{backgroundColor:"rgba(255,2...",color:"#ffffff"}}
+                                className="w-full border-0 rounded-lg py-1.5 pr-8 pl-3 text-sm placeholder:opacity-50 ..."
+-                               fdprocessedid="3m0xua"
+                              >
+                          <nav className="flex-1 ove...">
+                            <div>
+                            <div>
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="t5hl8g"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="myyd1g"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="stpiz"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="n4jdtw"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="5dsz6h"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="a6gr5"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="4hwnh7"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="fg5l4a"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="80py2d"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="51zpl"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="dk3n4"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="u5y5n"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="iuq9f"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="hjlwam"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="fi35qx"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="g85bqb"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="4x0o3f"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="v37c08"
+                              >
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="tbyu3b"
+                              >
+                            <div>
+                            <div>
+                            <div>
+                              <button
+                                onClick={function onClick}
+                                style={{color:"rgba(255,2...",backgroundColor:"transparent"}}
+                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duratio..."
+                                onMouseEnter={function onMouseEnter}
+                                onMouseLeave={function onMouseLeave}
+-                               fdprocessedid="cn1ju6k"
+                              >
+                            ...
+                      ...
+          ...
+ 
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:851:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m849 |[0m     </div>
+  [90m850 |[0m   )
+[31m[1m>[0m [90m851 |[0m }
+  [90m    |[0m [31m[1m^[0m
+  [90m852 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:851:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m849 |[0m     </div>
+  [90m850 |[0m   )
+[31m[1m>[0m [90m851 |[0m }
+  [90m    |[0m [31m[1m^[0m
+  [90m852 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:851:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m849 |[0m     </div>
+  [90m850 |[0m   )
+[31m[1m>[0m [90m851 |[0m }
+  [90m    |[0m [31m[1m^[0m
+  [90m852 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:851:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m849 |[0m     </div>
+  [90m850 |[0m   )
+[31m[1m>[0m [90m851 |[0m }
+  [90m    |[0m [31m[1m^[0m
+  [90m852 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:851:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m849 |[0m     </div>
+  [90m850 |[0m   )
+[31m[1m>[0m [90m851 |[0m }
+  [90m    |[0m [31m[1m^[0m
+  [90m852 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+[browser] Uncaught Error: ./src/app/(dashboard)/study-schedules/page.tsx:851:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  849 |     </div>
+  850 |   )
+> 851 | }
+      | ^
+  852 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/study-schedules/page.tsx:851:1)
+    at <unknown> (Error: (./src/app/(dashboard)/study-schedules/page.tsx:851:1)
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:841:6
+Unterminated regexp literal
+  [90m839 |[0m       </[33mModal[0m>
+  [90m840 |[0m     </div>
+[31m[1m>[0m [90m841 |[0m     </>
+  [90m    |[0m      [31m[1m^^[0m
+  [90m842 |[0m   )
+  [90m843 |[0m }
+  [90m844 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:841:6
+Unterminated regexp literal
+  [90m839 |[0m       </[33mModal[0m>
+  [90m840 |[0m     </div>
+[31m[1m>[0m [90m841 |[0m     </>
+  [90m    |[0m      [31m[1m^^[0m
+  [90m842 |[0m   )
+  [90m843 |[0m }
+  [90m844 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:841:6
+Unterminated regexp literal
+  [90m839 |[0m       </[33mModal[0m>
+  [90m840 |[0m     </div>
+[31m[1m>[0m [90m841 |[0m     </>
+  [90m    |[0m      [31m[1m^^[0m
+  [90m842 |[0m   )
+  [90m843 |[0m }
+  [90m844 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+⨯ ./src/app/(dashboard)/study-schedules/page.tsx:841:6
+Unterminated regexp literal
+  [90m839 |[0m       </[33mModal[0m>
+  [90m840 |[0m     </div>
+[31m[1m>[0m [90m841 |[0m     </>
+  [90m    |[0m      [31m[1m^^[0m
+  [90m842 |[0m   )
+  [90m843 |[0m }
+  [90m844 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+[browser] Uncaught Error: ./src/app/(dashboard)/study-schedules/page.tsx:841:6
+Unterminated regexp literal
+  839 |       </Modal>
+  840 |     </div>
+> 841 |     </>
+      |      ^^
+  842 |   )
+  843 | }
+  844 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/study-schedules/page.tsx [Client Component SSR]
+    ./src/app/(dashboard)/study-schedules/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/study-schedules/page.tsx:841:6)
+    at <unknown> (Error: (./src/app/(dashboard)/study-schedules/page.tsx:841:6)
+[browser] In HTML, <tr> cannot be a child of <table>. Add a <tbody>, <thead> or <tfoot> to your code to match the DOM tree generated by the browser.
+This will cause a hydration error.
+
+  ...
+    <InnerScrollAndFocusHandlerOld focusAndScrollRef={{scrollRef:null, ...}} cacheNode={{rsc:Promise, ...}}>
+      <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+        <LoadingBoundary name="study-sche..." loading={null}>
+          <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+            <RedirectBoundary>
+              <RedirectErrorBoundary router={{...}}>
+                <InnerLayoutRouter url="/study-sch..." tree={[...]} params={{}} cacheNode={{rsc:Promise, ...}} ...>
+                  <SegmentViewNode type="page" pagePath="(dashboard...">
+                    <SegmentTrieNode>
+                    <ClientPageRoot Component={function StudySchedulesPage} serverProvidedParams={{...}}>
+                      <StudySchedulesPage params={Promise} searchParams={Promise}>
+                        <div className="space-y-6">
+                          <div>
+                          <div>
+                          <div className="space-y-8">
+                            <div className="print-head...">
+>                             <table className="w-full">
+>                               <tr>
+                              ...
+                            ...
+                          ...
+                  ...
+                ...
+      ...
+ 

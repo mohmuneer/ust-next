@@ -1,8 +1,13 @@
-import { neon } from '@neondatabase/serverless'
+import { Pool } from '@neondatabase/serverless'
 
-const sql = neon(process.env.DATABASE_URL!)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+})
 
 export async function query(text: string, params?: unknown[]) {
-  const result = await sql(text, params)
-  return { rows: result }
+  const result = await pool.query(text, params)
+  return result
 }
+
+export default pool

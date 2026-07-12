@@ -80,8 +80,9 @@ export async function POST(request: Request) {
     return res
   } catch (error) {
     console.error('Login error:', error)
+    const detail = error instanceof Error ? error.message : 'unknown'
     return NextResponse.json(
-      { success: false, message: 'خطأ في الاتصال بالخادم' },
+      { success: false, message: 'خطأ في الاتصال بالخادم', detail },
       { status: 500 }
     )
   }

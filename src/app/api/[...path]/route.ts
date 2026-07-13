@@ -1107,6 +1107,24 @@ async function handleSpecialEndpoint(
     }
   }
 
+  if (fullPath === 'student-notifications-unread' && method === 'GET') {
+    const params = request.nextUrl.searchParams
+    const studentId = params.get('student_id')
+    if (!studentId) return NextResponse.json({ count: 0 })
+    try {
+      const rows = await neonSql.query(`
+        SELECT COUNT(*)::int as count FROM notifications
+        WHERE (user_id = ${esc(studentId)}
+           OR target_type = 'all'
+           OR (target_type = 'student' AND target_id = ${esc(studentId)}))
+           AND (is_read = false OR is_read IS NULL)
+      `)
+      return NextResponse.json({ count: rows[0]?.count || 0 })
+    } catch {
+      return NextResponse.json({ count: 0 })
+    }
+  }
+
   return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
 }
 

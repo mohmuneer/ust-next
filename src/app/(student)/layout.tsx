@@ -13,15 +13,8 @@ import { PWAInstallBanner } from '@/components/pwa-install-banner'
 import { PWAUpdateBanner } from '@/components/pwa-update-banner'
 import SplashScreen from '@/components/mobile/splash-screen'
 import BottomNav from '@/components/mobile/bottom-nav'
+import { NotificationBadgeProvider, useNotificationBadge } from '@/components/mobile/notification-badge-provider'
 import { LayoutDashboard, Calendar, MessageSquare, FileText, User } from 'lucide-react'
-
-const studentNavItems = [
-  { label: 'الرئيسية', icon: LayoutDashboard, href: '/student/dashboard' },
-  { label: 'الجدول', icon: Calendar, href: '/student/schedule' },
-  { label: 'الرسائل', icon: MessageSquare, href: '/student/messages' },
-  { label: 'الخدمات', icon: FileText, href: '/student/documents' },
-  { label: 'الحساب', icon: User, href: '/student/profile' },
-]
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -50,7 +43,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <SWRegistration manifestPath="/manifest-student.json" />
       <PWAInstallBanner variant="student" />
       <PWAUpdateBanner />
-      <StudentLayoutInner>{children}</StudentLayoutInner>
+      <NotificationBadgeProvider>
+        <StudentLayoutInner>{children}</StudentLayoutInner>
+      </NotificationBadgeProvider>
     </ThemeProvider>
   )
 }
@@ -77,6 +72,16 @@ function StudentLayoutInner({ children }: { children: React.ReactNode }) {
       }
     }).catch(() => {})
   }, [])
+
+  const { unreadCount } = useNotificationBadge()
+
+  const studentNavItems = [
+    { label: 'الرئيسية', icon: LayoutDashboard, href: '/student/dashboard' },
+    { label: 'الجدول', icon: Calendar, href: '/student/schedule' },
+    { label: 'الرسائل', icon: MessageSquare, href: '/student/messages', badge: unreadCount },
+    { label: 'الخدمات', icon: FileText, href: '/student/documents' },
+    { label: 'الحساب', icon: User, href: '/student/profile' },
+  ]
 
   if (isMobile) {
     return (

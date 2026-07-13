@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 import { removeAuthCookie } from '@/lib/auth-cookies'
+import { useNotificationBadge } from '@/components/mobile/notification-badge-provider'
 
 const CSS = {
   sidebarBg: 'var(--theme-sidebar-color, #0f172a)',
@@ -95,6 +96,7 @@ export function StudentSidebar() {
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set())
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const { unreadCount } = useNotificationBadge()
 
   const isActive = (href?: string) => href && pathname.startsWith(href)
 
@@ -320,7 +322,13 @@ export function StudentSidebar() {
                           {showLabels && (
                             <>
                               <span className="flex-1 text-right truncate">{item.title}</span>
-                              <span className="h-4 w-4 shrink-0" />
+                              {item.href === '/student/messages' && unreadCount > 0 ? (
+                                <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-white shrink-0" style={{ backgroundColor: 'var(--color-danger, #EF4444)' }}>
+                                  {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                              ) : (
+                                <span className="h-4 w-4 shrink-0" />
+                              )}
                             </>
                           )}
                         </Link>

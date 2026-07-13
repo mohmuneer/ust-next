@@ -10,6 +10,7 @@ import { Moon, Sun } from 'lucide-react'
 import { systemService } from '@/services/system.service'
 import { SWRegistration } from '@/components/sw-registration'
 import { PWAInstallBanner } from '@/components/pwa-install-banner'
+import { PWAUpdateBanner } from '@/components/pwa-update-banner'
 import SplashScreen from '@/components/mobile/splash-screen'
 import BottomNav from '@/components/mobile/bottom-nav'
 import { LayoutDashboard, Calendar, MessageSquare, FileText, User } from 'lucide-react'
@@ -48,6 +49,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     <ThemeProvider>
       <SWRegistration manifestPath="/manifest-student.json" />
       <PWAInstallBanner variant="student" />
+      <PWAUpdateBanner />
       <StudentLayoutInner>{children}</StudentLayoutInner>
     </ThemeProvider>
   )

@@ -1,8 +1,8 @@
-const CACHE_VERSION = 'ust-pwa-v3';
-const STATIC_CACHE = 'ust-static-v3';
-const DYNAMIC_CACHE = 'ust-dynamic-v3';
-const FONT_CACHE = 'ust-fonts-v3';
-const IMAGE_CACHE = 'ust-images-v3';
+const CACHE_VERSION = 'ust-pwa-v4';
+const STATIC_CACHE = 'ust-static-v4';
+const DYNAMIC_CACHE = 'ust-dynamic-v4';
+const FONT_CACHE = 'ust-fonts-v4';
+const IMAGE_CACHE = 'ust-images-v4';
 
 const STATIC_ASSETS = [
   '/ust-logo.png',
@@ -100,6 +100,12 @@ async function cacheFirstNetworkFallback(request, cacheName) {
     }
     return response;
   } catch {
+    if (request.destination === 'image' || request.url.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)$/i)) {
+      return new Response(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect fill="#f3f4f6" width="200" height="200"/>
+  <text fill="#9ca3af" font-family="sans-serif" font-size="14" text-anchor="middle" x="100" y="105">UST</text>
+</svg>`, { headers: { 'Content-Type': 'image/svg+xml' } });
+    }
     return new Response('', { status: 408, statusText: 'Request Timeout' });
   }
 }
@@ -207,4 +213,13 @@ self.addEventListener('notificationclick', (event) => {
       return self.clients.openWindow(url);
     })
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: CACHE_VERSION });
+  }
 });

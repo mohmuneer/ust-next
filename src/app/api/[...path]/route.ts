@@ -313,18 +313,130 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'attendance-reports' && method === 'GET') {
-    const rows = await neonSql.query(`
-      SELECT s.id as student_id, s.full_name, s.student_number,
-        COUNT(ar.id) FILTER (WHERE ar.status = 'present') as present_count,
-        COUNT(ar.id) FILTER (WHERE ar.status = 'absent') as absent_count,
-        COUNT(ar.id) FILTER (WHERE ar.status = 'late') as late_count,
-        COUNT(ar.id) as total_sessions
-      FROM students s
-      LEFT JOIN attendance_records ar ON s.id = ar.student_id
-      GROUP BY s.id, s.full_name, s.student_number
-      ORDER BY s.full_name
-    `)
-    return NextResponse.json(rows)
+    const params = request.nextUrl.searchParams
+    const conditions: string[] = []
+    const dateFrom = params.get('date_from')
+    const dateTo = params.get('date_to')
+    const subjectId = params.get('subject_id')
+    const employeeId = params.get('employee_id')
+    if (dateFrom) conditions.push(`ats.session_date >= '${dateFrom}'`)
+    if (dateTo) conditions.push(`ats.session_date <= '${dateTo}'`)
+    if (subjectId) conditions.push(`ats.study_subject_id = ${esc(subjectId)}`)
+    if (employeeId) conditions.push(`ats.employee_id = ${esc(employeeId)}`)
+    const where = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : ''
+
+    const summaryRows = await neonSql.query(`
+      SELECT
+        COUNT(DISTINCT ats.id)::int as total_sessions,
+        COUNT(ar.id)::int as total_records,
+        COUNT(ar.id) FILTER (WHERE ar.status = 'present')::int as present,
+        COUNT(ar.id) FILTER (WHERE ar.status = 'absent')::int as absent,
+        COUNT(ar.id) FILTER (WHERE ar.status = 'late')::int as late,
+        COUNT(ar.id) FILTER (WHERE ar.status = 'excused')::int as excused
+      FROM attendance_sessions ats
+      LEFT JOIN attendance_records ar ON ats.id = ar.attendance_session_id ${where}
+    `) as any[]
+    const s = summaryRows[0] || { total_sessions: 0, total_records: 0, present: 0, absent: 0, late: 0, excused: 0 }
+    const attendanceRate = s.total_records > 0 ? Math.round((s.present / s.total_records) * 100) : 0
+
+    let bySubject: any[] = []
+    try {
+      bySubject = await neonSql.query(`
+        SELECT ssr.subject_name,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'present')::int as present,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'absent')::int as absent,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'late')::int as late
+        FROM attendance_records ar
+        JOIN attendance_sessions ats ON ar.attendance_session_id = ats.id
+        LEFT JOIN study_subjects ssr ON ats.study_subject_id = ssr.id
+        WHERE 1=1 ${where.replace(/ats\./g, 'ats.')}
+        GROUP BY ssr.subject_name
+        ORDER BY ssr.subject_name
+      `) as any[]
+    } catch { /* ignore */ }
+
+    let byEmployee: any[] = []
+    try {
+      byEmployee = await neonSql.query(`
+        SELECT e.full_name as employee_name,
+          COUNT(DISTINCT ats.id)::int as sessions,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'present')::int as present,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'absent')::int as absent
+        FROM attendance_sessions ats
+        LEFT JOIN employees e ON ats.employee_id = e.id
+        LEFT JOIN attendance_records ar ON ats.id = ar.attendance_session_id
+        WHERE 1=1 ${where.replace(/ats\./g, 'ats.')}
+        GROUP BY e.full_name
+        ORDER BY e.full_name
+      `) as any[]
+    } catch { /* ignore */ }
+
+    let dailyTrend: any[] = []
+    try {
+      dailyTrend = await neonSql.query(`
+        SELECT ats.session_date as date,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'present')::int as present,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'absent')::int as absent,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'late')::int as late
+        FROM attendance_sessions ats
+        LEFT JOIN attendance_records ar ON ats.id = ar.attendance_session_id
+        WHERE 1=1 ${where.replace(/ats\./g, 'ats.')}
+        GROUP BY ats.session_date
+        ORDER BY ats.session_date
+      `) as any[]
+    } catch { /* ignore */ }
+
+    let byMethod: any[] = []
+    try {
+      byMethod = await neonSql.query(`
+        SELECT COALESCE(ar.check_in_method, 'manual') as method, COUNT(ar.id)::int as count
+        FROM attendance_records ar
+        LEFT JOIN attendance_sessions ats ON ar.attendance_session_id = ats.id
+        WHERE 1=1 ${where.replace(/ats\./g, 'ats.')}
+        GROUP BY ar.check_in_method
+      `) as any[]
+    } catch { /* ignore */ }
+
+    let topStudents: any[] = []
+    let worstStudents: any[] = []
+    try {
+      topStudents = await neonSql.query(`
+        SELECT s.student_number, s.full_name,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'present')::int as sessions,
+          CASE WHEN COUNT(ar.id) > 0 THEN ROUND(COUNT(ar.id) FILTER (WHERE ar.status = 'present')::numeric / COUNT(ar.id) * 100, 1) ELSE 0 END as attendance_rate
+        FROM students s
+        JOIN attendance_records ar ON s.id = ar.student_id
+        LEFT JOIN attendance_sessions ats ON ar.attendance_session_id = ats.id
+        WHERE 1=1 ${where.replace(/ats\./g, 'ats.')}
+        GROUP BY s.id, s.student_number, s.full_name
+        HAVING COUNT(ar.id) > 0
+        ORDER BY attendance_rate DESC
+        LIMIT 10
+      `) as any[]
+      worstStudents = await neonSql.query(`
+        SELECT s.student_number, s.full_name,
+          COUNT(ar.id) FILTER (WHERE ar.status = 'present')::int as sessions,
+          CASE WHEN COUNT(ar.id) > 0 THEN ROUND(COUNT(ar.id) FILTER (WHERE ar.status = 'present')::numeric / COUNT(ar.id) * 100, 1) ELSE 0 END as attendance_rate
+        FROM students s
+        JOIN attendance_records ar ON s.id = ar.student_id
+        LEFT JOIN attendance_sessions ats ON ar.attendance_session_id = ats.id
+        WHERE 1=1 ${where.replace(/ats\./g, 'ats.')}
+        GROUP BY s.id, s.student_number, s.full_name
+        HAVING COUNT(ar.id) > 0
+        ORDER BY attendance_rate ASC
+        LIMIT 10
+      `) as any[]
+    } catch { /* ignore */ }
+
+    return NextResponse.json({
+      summary: { ...s, attendance_rate: attendanceRate },
+      by_subject: bySubject,
+      by_employee: byEmployee,
+      daily_trend: dailyTrend,
+      by_method: byMethod,
+      top_students: topStudents,
+      worst_students: worstStudents,
+    })
   }
 
   if (parts[0] === 'attendance-stats' && parts[1]) {

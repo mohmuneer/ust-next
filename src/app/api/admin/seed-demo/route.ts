@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import type { NeonQueryFunction } from '@neondatabase/serverless'
@@ -16,9 +16,11 @@ async function getNeon() {
 
 export const maxDuration = 60
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const sqlPath = join(process.cwd(), 'seed-enhancement.sql')
+    const body = await request.json().catch(() => ({}))
+    const fileName = body.file || 'seed-enhancement.sql'
+    const sqlPath = join(process.cwd(), fileName)
     const raw = readFileSync(sqlPath, 'utf-8')
 
     const lines = raw.split('\n')
@@ -73,7 +75,8 @@ export async function POST() {
 
     return NextResponse.json({
       ok: true,
-      message: 'تم تعبئة البيانات التجريبية بنجاح',
+      message: `تم تعبئة بيانات ${fileName} بنجاح`,
+      file: fileName,
       statements_total: statements.length,
       success_count: successCount,
       skipped: skipCount,

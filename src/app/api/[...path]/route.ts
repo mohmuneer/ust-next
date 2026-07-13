@@ -149,6 +149,19 @@ async function handleDbRequest(request: NextRequest, method: string) {
   const resourceId = parts.length > 1 ? parts[1] : null
   const subPath = parts.length > 2 ? parts.slice(2).join('/') : null
 
+  if (fullPath === 'messages/conversations' && method === 'GET') {
+    return handleConversations(neonSql, request)
+  }
+  if (fullPath === 'messages/unread-count' && method === 'GET') {
+    return handleUnreadCount(neonSql, request)
+  }
+  if (basePath === 'messages' && resourceId && resourceId !== 'conversations' && resourceId !== 'unread-count' && !subPath && method === 'GET') {
+    return handleMessagesThread(neonSql, resourceId)
+  }
+  if (basePath === 'messages' && method === 'POST') {
+    return handleSendMessage(neonSql, request)
+  }
+
   const table = TABLE_MAP[basePath]
 
   if (!table) {
@@ -247,14 +260,6 @@ async function handleSubPath(neonSql: any, table: string, parentId: string, subP
     const rows = await neonSql.query(`SELECT * FROM faculty_preferences WHERE employee_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
-  if (table === 'messages' && subPath === 'conversations') {
-    const rows = await neonSql.query(`SELECT * FROM messages WHERE sender_id = ${esc(parentId)} OR receiver_id = ${esc(parentId)} ORDER BY created_at DESC`)
-    return NextResponse.json(rows)
-  }
-  if (table === 'messages' && subPath === 'unread-count') {
-    const rows = await neonSql.query(`SELECT COUNT(*)::int as count FROM messages WHERE receiver_id = ${esc(parentId)} AND is_read = 0`)
-    return NextResponse.json(rows[0] || { count: 0 })
-  }
 
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
 }
@@ -288,6 +293,82 @@ async function handleUpdate(neonSql: any, request: NextRequest, table: string, i
 async function handleDelete(neonSql: any, table: string, id: string) {
   await neonSql.query(`DELETE FROM ${table} WHERE id = ${esc(id)}`)
   return NextResponse.json({ success: true, message: 'تم الحذف بنجاح' })
+}
+
+async function handleConversations(neonSql: any, request: NextRequest) {
+  const params = request.nextUrl.searchParams
+  const userId = params.get('user_id') || '10'
+  const rows = await neonSql.query(`
+    WITH latest_messages AS (
+      SELECT
+        CASE WHEN sender_id = ${esc(userId)} THEN receiver_id ELSE sender_id END AS other_user_id,
+        message_text AS last_message,
+        created_at,
+        is_read,
+        ROW_NUMBER() OVER (
+          PARTITION BY CASE WHEN sender_id = ${esc(userId)} THEN receiver_id ELSE sender_id END
+          ORDER BY created_at DESC
+        ) AS rn
+      FROM messages
+      WHERE sender_id = ${esc(userId)} OR receiver_id = ${esc(userId)}
+    )
+    SELECT
+      lm.other_user_id AS id,
+      lm.last_message,
+      lm.created_at,
+      lm.is_read,
+      COALESCE(s.full_name, e.full_name, 'مستخدم ' || lm.other_user_id) AS full_name,
+      (SELECT COUNT(*)::int FROM messages WHERE sender_id = lm.other_user_id AND receiver_id = ${esc(userId)} AND is_read = 0) AS unread_count
+    FROM latest_messages lm
+    LEFT JOIN users u ON u.id = lm.other_user_id
+    LEFT JOIN students s ON s.id = lm.other_user_id
+    LEFT JOIN employees e ON e.id = lm.other_user_id
+    WHERE lm.rn = 1
+    ORDER BY lm.created_at DESC
+  `) as any[]
+  return NextResponse.json(rows)
+}
+
+async function handleUnreadCount(neonSql: any, request: NextRequest) {
+  const params = request.nextUrl.searchParams
+  const userId = params.get('user_id') || '10'
+  const rows = await neonSql.query(`
+    SELECT COUNT(*)::int as count FROM messages WHERE receiver_id = ${esc(userId)} AND is_read = 0
+  `) as any[]
+  return NextResponse.json(rows[0] || { count: 0 })
+}
+
+async function handleMessagesThread(neonSql: any, otherUserId: string) {
+  const rows = await neonSql.query(`
+    SELECT
+      m.*,
+      COALESCE(s.full_name, e.full_name, 'مستخدم ' || m.sender_id) AS full_name
+    FROM messages m
+    LEFT JOIN users u ON u.id = m.sender_id
+    LEFT JOIN students s ON s.id = m.sender_id
+    LEFT JOIN employees e ON e.id = m.sender_id
+    WHERE (m.sender_id = ${esc(otherUserId)} OR m.receiver_id = ${esc(otherUserId)})
+    ORDER BY m.created_at ASC
+  `) as any[]
+  return NextResponse.json(rows)
+}
+
+async function handleSendMessage(neonSql: any, request: NextRequest) {
+  const body = await request.json().catch(() => ({}))
+  const senderId = body.sender_id || 10
+  const receiverId = body.receiver_id
+  const messageText = body.message_text || body.message || ''
+
+  if (!receiverId || !messageText) {
+    return NextResponse.json({ success: false, error: 'receiver_id and message are required' }, { status: 400 })
+  }
+
+  const rows = await neonSql.query(`
+    INSERT INTO messages (sender_id, receiver_id, message_text, is_read, created_at)
+    VALUES (${esc(senderId)}, ${esc(receiverId)}, ${esc(messageText)}, 0, NOW())
+    RETURNING *
+  `) as any[]
+  return NextResponse.json({ success: true, data: rows[0] || {} })
 }
 
 async function handleSpecialEndpoint(

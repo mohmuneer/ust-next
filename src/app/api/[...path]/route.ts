@@ -882,42 +882,80 @@ async function handleSpecialEndpoint(
   }
 
   if (parts[0] === 'student-schedule' && method === 'GET') {
-    const params = request.nextUrl.searchParams
-    const studentId = params.get('student_id')
-    if (!studentId) return NextResponse.json({ student: null, subjects: [], schedule: [], semester: null, total_hours: 0, total_subjects: 0 })
+    const authUser = (request as any)._authUser
+    if (!authUser || authUser.type !== 'student') {
+      return NextResponse.json({ error: 'غير مصرح بالدخول' }, { status: 401 })
+    }
+    const studentId = authUser.id
 
     const student = await neonSql.query(`
-      SELECT s.*, c.college_name, d.department_name, sl.level_name, sg.group_name
+      SELECT s.id, s.student_number, s.full_name, s.email, s.phone,
+             s.college_id, s.department_id, s.study_level_id, s.study_group_id,
+             s.academic_semester_id, s.status, s.photo,
+             c.college_name, d.department_name, sl.level_name,
+             sg.group_name, sg.group_type, sem.semester_name,
+             sem.start_date as semester_start, sem.end_date as semester_end,
+             sem.is_current as semester_is_current
       FROM students s
       LEFT JOIN colleges c ON c.id = s.college_id
       LEFT JOIN departments d ON d.id = s.department_id
       LEFT JOIN study_levels sl ON sl.id = s.study_level_id
       LEFT JOIN study_groups sg ON sg.id = s.study_group_id
+      LEFT JOIN academic_semesters sem ON sem.id = s.academic_semester_id
       WHERE s.id = ${esc(studentId)} LIMIT 1
     `).then((r: any) => r[0] || null)
 
+    if (!student) {
+      return NextResponse.json({ student: null, subjects: [], schedule: [], semester: null, total_hours: 0, total_subjects: 0 })
+    }
+
+    const studentSemesterId = student.academic_semester_id
+
     const schedules = await neonSql.query(`
-      SELECT ss.*, ssr.subject_name, ssr.subject_code,
-             e.full_name as employee_name,
-             sg2.group_name
+      SELECT ss.id, ss.day_of_week, ss.start_time, ss.end_time, ss.room, ss.notes,
+             ss.study_subject_id, ss.employee_id, ss.external_employee_id,
+             ss.study_group_id, ss.study_level_id, ss.college_id,
+             LOWER(ss.day_of_week) as day_key,
+             ssr.subject_name, ssr.subject_code, ssr.weekly_hours,
+             ssr.department_id as subject_department_id,
+             COALESCE(e.full_name, ee.full_name) as employee_name,
+             COALESCE(e.email, ee.email) as employee_email,
+             COALESCE(e.phone, ee.phone) as employee_phone,
+             COALESCE(e.academic_degree, '') as employee_degree,
+             sg2.group_name, sg2.group_type,
+             c2.college_name, d2.department_name
       FROM study_schedules ss
       LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id
       LEFT JOIN employees e ON ss.employee_id = e.id
+      LEFT JOIN external_employees ee ON ss.external_employee_id = ee.id
       LEFT JOIN study_groups sg2 ON sg2.id = ss.study_group_id
-      WHERE ss.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)})
-      ORDER BY ss.day_of_week, ss.start_time
+      LEFT JOIN colleges c2 ON c2.id = ss.college_id
+      LEFT JOIN departments d2 ON d2.id = ssr.department_id
+      WHERE ss.study_group_id = ${esc(student.study_group_id)}
+        AND (ss.academic_semester_id = ${esc(studentSemesterId)} OR ss.academic_semester_id IS NULL)
+      ORDER BY CASE LOWER(ss.day_of_week)
+        WHEN 'saturday' THEN 1 WHEN 'sunday' THEN 2 WHEN 'monday' THEN 3
+        WHEN 'tuesday' THEN 4 WHEN 'wednesday' THEN 5 WHEN 'thursday' THEN 6
+        ELSE 7 END, ss.start_time
     `)
 
     const subjectIds = [...new Set(schedules.map((s: any) => s.study_subject_id).filter(Boolean))]
     const subjects = subjectIds.length > 0 ? await neonSql.query(`
-      SELECT * FROM study_subjects WHERE id IN (${subjectIds.map((id: any) => esc(id)).join(',')})
+      SELECT ssr.id, ssr.subject_name, ssr.subject_code, ssr.weekly_hours,
+             ssr.department_id, ssr.college_id, ssr.study_level_id,
+             d.department_name, c.college_name
+      FROM study_subjects ssr
+      LEFT JOIN departments d ON d.id = ssr.department_id
+      LEFT JOIN colleges c ON c.id = ssr.college_id
+      WHERE ssr.id IN (${subjectIds.map((id: any) => esc(id)).join(',')})
     `) : []
 
-    const semester = student?.academic_semester_id ? await neonSql.query(`
-      SELECT id, semester_name FROM academic_semesters WHERE id = ${esc(student.academic_semester_id)} LIMIT 1
+    const semester = studentSemesterId ? await neonSql.query(`
+      SELECT id, semester_name, start_date, end_date, is_current
+      FROM academic_semesters WHERE id = ${esc(studentSemesterId)} LIMIT 1
     `).then((r: any) => r[0] || null) : null
 
-    const totalHours = schedules.reduce((sum: number, s: any) => sum + (parseFloat(s.weekly_hours) || 0), 0)
+    const totalHours = subjects.reduce((sum: number, s: any) => sum + (parseInt(s.weekly_hours) || 0), 0)
 
     return NextResponse.json({
       student,

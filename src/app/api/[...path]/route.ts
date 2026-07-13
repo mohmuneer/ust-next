@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFileSync } from 'fs'
-import { join } from 'path'
-import type { NeonQueryFunction } from '@neondatabase/serverless'
 
 const API_BASE = process.env.API_BASE_URL
 
-let cachedNeon: NeonQueryFunction<false, false> | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cachedNeon: any = null
 
 async function getNeon() {
   if (cachedNeon) return cachedNeon
@@ -180,7 +178,8 @@ async function handleDbRequest(request: NextRequest, method: string) {
   return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
 }
 
-async function handleList(neonSql: ReturnType<NeonQueryFunction<false, false>>, request: NextRequest, table: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleList(neonSql: any, request: NextRequest, table: string) {
   const params = request.nextUrl.searchParams
   const conditions: string[] = []
 
@@ -196,7 +195,7 @@ async function handleList(neonSql: ReturnType<NeonQueryFunction<false, false>>, 
   return NextResponse.json(rows)
 }
 
-async function handleGetById(neonSql: ReturnType<NeonQueryFunction<false, false>>, table: string, id: string, subPath: string | null) {
+async function handleGetById(neonSql: any, table: string, id: string, subPath: string | null) {
   if (subPath) {
     return handleSubPath(neonSql, table, id, subPath)
   }
@@ -207,7 +206,7 @@ async function handleGetById(neonSql: ReturnType<NeonQueryFunction<false, false>
   return NextResponse.json(rows[0])
 }
 
-async function handleSubPath(neonSql: ReturnType<NeonQueryFunction<false, false>>, table: string, parentId: string, subPath: string) {
+async function handleSubPath(neonSql: any, table: string, parentId: string, subPath: string) {
   if (table === 'students' && subPath === 'enrollments') {
     const rows = await neonSql.unsafe(`SELECT * FROM student_enrollments WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
@@ -260,7 +259,7 @@ async function handleSubPath(neonSql: ReturnType<NeonQueryFunction<false, false>
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
 }
 
-async function handleCreate(neonSql: ReturnType<NeonQueryFunction<false, false>>, request: NextRequest, table: string) {
+async function handleCreate(neonSql: any, request: NextRequest, table: string) {
   const body = await request.json().catch(() => ({}))
   if (!body || Object.keys(body).length === 0) {
     return NextResponse.json({ success: true, message: 'تمت العملية بنجاح' })
@@ -274,7 +273,7 @@ async function handleCreate(neonSql: ReturnType<NeonQueryFunction<false, false>>
   return NextResponse.json(rows[0] || { success: true })
 }
 
-async function handleUpdate(neonSql: ReturnType<NeonQueryFunction<false, false>>, request: NextRequest, table: string, id: string) {
+async function handleUpdate(neonSql: any, request: NextRequest, table: string, id: string) {
   const body = await request.json().catch(() => ({}))
   if (!body || Object.keys(body).length === 0) {
     return NextResponse.json({ success: true, message: 'تمت العملية بنجاح' })
@@ -286,13 +285,13 @@ async function handleUpdate(neonSql: ReturnType<NeonQueryFunction<false, false>>
   return NextResponse.json(rows[0] || { success: true })
 }
 
-async function handleDelete(neonSql: ReturnType<NeonQueryFunction<false, false>>, table: string, id: string) {
+async function handleDelete(neonSql: any, table: string, id: string) {
   await neonSql.unsafe(`DELETE FROM ${table} WHERE id = ${esc(id)}`)
   return NextResponse.json({ success: true, message: 'تم الحذف بنجاح' })
 }
 
 async function handleSpecialEndpoint(
-  neonSql: ReturnType<NeonQueryFunction<false, false>>,
+  neonSql: any,
   request: NextRequest,
   method: string,
   fullPath: string,
@@ -427,7 +426,7 @@ async function handleSpecialEndpoint(
   return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
 }
 
-async function handleDashboardStats(neonSql: ReturnType<NeonQueryFunction<false, false>>) {
+async function handleDashboardStats(neonSql: any) {
   const [
     requestsRes,
     usersRes,
@@ -444,20 +443,20 @@ async function handleDashboardStats(neonSql: ReturnType<NeonQueryFunction<false,
     tasksRes,
     recentRequestsRes,
   ] = await Promise.all([
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','closed'))::int AS resolved, COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled FROM requests`).then(r => r[0] || { total: 0, pending: 0, in_progress: 0, resolved: 0, cancelled: 0 }),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM users`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM colleges`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM departments`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM labs`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_levels`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_groups`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_subjects`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM academic_semesters`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM guardians`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM exams`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM students`).then(r => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','done'))::int AS completed FROM tasks`).then(r => r[0] || { total: 0, pending: 0, in_progress: 0, completed: 0 }),
-    neonSql.unsafe(`SELECT * FROM requests ORDER BY created_at DESC LIMIT 10`).then(r => r),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','closed'))::int AS resolved, COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled FROM requests`).then((r: any) => r[0] || { total: 0, pending: 0, in_progress: 0, resolved: 0, cancelled: 0 }),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM users`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM colleges`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM departments`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM labs`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_levels`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_groups`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_subjects`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM academic_semesters`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM guardians`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM exams`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM students`).then((r: any) => r[0]?.total || 0),
+    neonSql.unsafe(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','done'))::int AS completed FROM tasks`).then((r: any) => r[0] || { total: 0, pending: 0, in_progress: 0, completed: 0 }),
+    neonSql.unsafe(`SELECT * FROM requests ORDER BY created_at DESC LIMIT 10`).then((r: any) => r),
   ]).catch(() => [null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, null, []])
 
   const req = requestsRes || { total: 0, pending: 0, in_progress: 0, resolved: 0, cancelled: 0 }
@@ -525,12 +524,12 @@ async function handleDashboardStats(neonSql: ReturnType<NeonQueryFunction<false,
   })
 }
 
-async function handleStudentDashboard(neonSql: ReturnType<NeonQueryFunction<false, false>>, request: NextRequest) {
+async function handleStudentDashboard(neonSql: any, request: NextRequest) {
   const params = request.nextUrl.searchParams
   const studentId = params.get('student_id') || '1'
 
   const [student, enrollments, schedules, fees, gpa] = await Promise.all([
-    neonSql.unsafe(`SELECT * FROM students WHERE id = ${esc(studentId)} LIMIT 1`).then(r => r[0] || null),
+    neonSql.unsafe(`SELECT * FROM students WHERE id = ${esc(studentId)} LIMIT 1`).then((r: any) => r[0] || null),
     neonSql.unsafe(`SELECT * FROM student_enrollments WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 5`),
     neonSql.unsafe(`SELECT ss.*, ssr.subject_name FROM study_schedules ss LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id WHERE ss.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)}) ORDER BY ss.day_of_week LIMIT 10`),
     neonSql.unsafe(`SELECT * FROM student_fees WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 10`),

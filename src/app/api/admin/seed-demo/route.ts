@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server'
-import { query } from '@/lib/db'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import type { NeonQueryFunction } from '@neondatabase/serverless'
+
+let cachedNeon: NeonQueryFunction<false, false> | null = null
+
+async function getNeon() {
+  if (cachedNeon) return cachedNeon
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error('DATABASE_URL is not set')
+  const { neon } = await import('@neondatabase/serverless')
+  cachedNeon = neon(url)
+  return cachedNeon
+}
 
 export const maxDuration = 60
 
@@ -25,8 +36,6 @@ export async function POST() {
       cleaned.push(line)
     }
 
-    const fullSql = cleaned.join('\n')
-
     const statements: string[] = []
     let current = ''
 
@@ -40,6 +49,8 @@ export async function POST() {
     }
     if (current.trim().length > 0) statements.push(current.trim())
 
+    const neonSql = await getNeon()
+
     let successCount = 0
     let skipCount = 0
     let errorCount = 0
@@ -47,21 +58,15 @@ export async function POST() {
 
     for (const stmt of statements) {
       try {
-        const upper = stmt.toUpperCase().trim()
-        if (upper.startsWith('BEGIN') || upper.startsWith('COMMIT') || upper.startsWith('ROLLBACK')) {
-          await query(stmt)
-          successCount++
-          continue
-        }
-        await query(stmt)
+        await neonSql.unsafe(stmt)
         successCount++
       } catch (e: unknown) {
         const msg = String(e)
-        if (msg.includes('duplicate key') || msg.includes('already exists') || msg.includes('violates unique')) {
+        if (msg.includes('duplicate key') || msg.includes('already exists') || msg.includes('violates unique constraint')) {
           skipCount++
         } else {
           errorCount++
-          if (errors.length < 20) errors.push(msg.substring(0, 200) + ' | ' + stmt.substring(0, 80))
+          if (errors.length < 20) errors.push(msg.substring(0, 200) + ' | ' + stmt.substring(0, 100))
         }
       }
     }

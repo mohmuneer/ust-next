@@ -12,7 +12,6 @@ import type { Conversation, ChatMessage, GroupMember } from '@/types/chat'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useEmployeeAuthStore } from '@/store/useEmployeeAuthStore'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
-import apiClient from '@/lib/axios'
 
 export default function ChatPage() {
   const queryClient = useQueryClient()
@@ -80,23 +79,28 @@ export default function ChatPage() {
     }
   }, [selectedConvo, currentUserId, queryClient])
 
+  const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+
   const handleSendFile = useCallback(async (file: File) => {
     if (!selectedConvo || sendingRef.current) return
     sendingRef.current = true
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const uploadRes = await apiClient.post<{ url: string; name: string; type: string; size: number }>('/upload', formData)
-      const fileData = uploadRes.data
+      const base64 = await fileToBase64(file)
+      const isImage = file.type.startsWith('image/')
 
       const data: Record<string, unknown> = {
         sender_id: currentUserId,
-        message_text: fileData.name,
-        message_type: file.name.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? 'image' : 'file',
-        attachment_url: fileData.url,
-        attachment_name: fileData.name,
-        attachment_type: fileData.type,
-        attachment_size: fileData.size,
+        message_text: file.name,
+        message_type: isImage ? 'image' : 'file',
+        attachment_url: base64,
+        attachment_name: file.name,
+        attachment_type: file.type,
+        attachment_size: file.size,
       }
       if (selectedConvo.type === 'group') data.group_id = selectedConvo.id
       else data.receiver_id = selectedConvo.id
@@ -115,20 +119,15 @@ export default function ChatPage() {
     if (!selectedConvo || sendingRef.current) return
     sendingRef.current = true
     try {
-      const formData = new FormData()
-      const ext = blob.type.includes('webm') ? 'webm' : 'mp3'
-      const fileName = `voice-${Date.now()}.${ext}`
-      formData.append('file', blob, fileName)
-      const uploadRes = await apiClient.post<{ url: string; name: string; type: string; size: number }>('/upload', formData)
-      const fileData = uploadRes.data
+      const base64 = await fileToBase64(blob as File)
 
       const data: Record<string, unknown> = {
         sender_id: currentUserId,
-        message_text: ' رسالة صوتية',
+        message_text: 'رسالة صوتية',
         message_type: 'audio',
-        attachment_url: fileData.url,
-        attachment_name: fileName,
-        attachment_type: 'audio/webm',
+        attachment_url: base64,
+        attachment_name: `voice-${Date.now()}.webm`,
+        attachment_type: blob.type || 'audio/webm',
         attachment_size: blob.size,
       }
       if (selectedConvo.type === 'group') data.group_id = selectedConvo.id

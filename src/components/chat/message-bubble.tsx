@@ -70,7 +70,22 @@ export function MessageBubble({ message, isOwn, showAvatar = true, onReply, onEd
           )}
 
           {/* Message content */}
-          {message.message_type === 'file' || message.attachment_url ? (
+          {message.message_type === 'audio' && message.attachment_url ? (
+            <div className="min-w-[200px]">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🎤</span>
+                <span className="text-xs opacity-70">رسالة صوتية</span>
+              </div>
+              <audio controls src={message.attachment_url} className="w-full h-8" style={{ filter: isOwn ? 'invert(1) hue-rotate(180deg)' : 'none' }} />
+              {message.attachment_size && (
+                <p className="text-[10px] opacity-50 mt-0.5">{formatFileSize(message.attachment_size)}</p>
+              )}
+            </div>
+          ) : message.message_type === 'image' && message.attachment_url ? (
+            <div className="rounded-xl overflow-hidden max-w-[280px]">
+              <img src={message.attachment_url} alt="" className="w-full h-auto" loading="lazy" />
+            </div>
+          ) : message.attachment_url ? (
             <div className="flex items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5">
               <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                 <span className="text-lg">📎</span>
@@ -81,10 +96,6 @@ export function MessageBubble({ message, isOwn, showAvatar = true, onReply, onEd
                   <p className="text-[11px] opacity-70">{formatFileSize(message.attachment_size)}</p>
                 )}
               </div>
-            </div>
-          ) : message.message_type === 'image' ? (
-              <div className="rounded-xl overflow-hidden max-w-[280px]">
-              <img src={message.attachment_url || ''} alt="" className="w-full h-auto" />
             </div>
           ) : (
             <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.message_text}</p>

@@ -3,8 +3,6 @@
 -- Between students, employees, doctors, admin, departments
 -- ============================================================
 
-BEGIN;
-
 -- Remove old messages to start fresh with our conversation data
 DELETE FROM messages;
 ALTER SEQUENCE messages_id_seq RESTART WITH 1;
@@ -355,5 +353,3 @@ INSERT INTO messages (sender_id, receiver_id, message_text, is_read, created_at)
 (10, 11, 'تقرير الأداء الفصلي مطلوب قبل نهاية الشهر', 0, '2025-11-25 08:00:00'),
 (10, 13, 'تقرير الأداء الفصلي مطلوب قبل نهاية الشهر', 0, '2025-11-25 08:00:00'),
 (10, 12, 'تقرير الأداء الفصلي مطلوب قبل نهاية الشهر', 0, '2025-11-25 08:00:00');
-
-COMMIT;

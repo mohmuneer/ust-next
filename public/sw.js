@@ -1,8 +1,8 @@
-const CACHE_VERSION = 'ust-pwa-v4';
-const STATIC_CACHE = 'ust-static-v4';
-const DYNAMIC_CACHE = 'ust-dynamic-v4';
-const FONT_CACHE = 'ust-fonts-v4';
-const IMAGE_CACHE = 'ust-images-v4';
+const CACHE_VERSION = 'ust-pwa-v5';
+const STATIC_CACHE = 'ust-static-v5';
+const DYNAMIC_CACHE = 'ust-dynamic-v5';
+const FONT_CACHE = 'ust-fonts-v5';
+const IMAGE_CACHE = 'ust-images-v5';
 
 const STATIC_ASSETS = [
   '/ust-logo.png',
@@ -46,6 +46,18 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET') return;
 
+  if (request.mode === 'navigate') {
+    return;
+  }
+
+  if (request.destination === 'document' || request.destination === 'manifest') {
+    return;
+  }
+
+  if (url.pathname.startsWith('/manifest')) {
+    return;
+  }
+
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
@@ -62,11 +74,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirstCacheFallback(request, DYNAMIC_CACHE));
-    return;
-  }
-
-  if (request.destination === 'document' || url.pathname.endsWith('/') || !url.pathname.includes('.')) {
     event.respondWith(networkFirstCacheFallback(request, DYNAMIC_CACHE));
     return;
   }

@@ -24,10 +24,9 @@ export const chatService = {
   },
 
   async sendMessage(data: SendMessageParams): Promise<ChatMessage | null> {
-    try {
-      const res = await apiClient.post<{ success: boolean; data: ChatMessage }>('/messages', data)
-      return res.data.data
-    } catch { return null }
+    const res = await apiClient.post<{ success: boolean; data: ChatMessage; error?: string }>('/messages', data, { timeout: 60000 })
+    if (!res.data.success) throw new Error(res.data.error || 'Failed to send')
+    return res.data.data
   },
 
   async markAsRead(userId: number, readerId: number): Promise<void> {

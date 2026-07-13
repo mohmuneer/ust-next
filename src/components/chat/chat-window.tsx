@@ -5,7 +5,7 @@ import { UserAvatar } from './user-avatar'
 import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
 import type { ChatMessage, Conversation } from '@/types/chat'
-import { Phone, Video, Search, Info, ArrowRight, Users, MoreVertical } from 'lucide-react'
+import { Phone, Video, Search, Info, ArrowRight, Users } from 'lucide-react'
 
 interface ChatWindowProps {
   conversation: Conversation | null
@@ -13,7 +13,7 @@ interface ChatWindowProps {
   currentUserId: number
   onSend: (text: string, replyToId?: number) => void
   onSendFile?: (file: File) => void
-  onSendVoice?: (blob: Blob) => void
+  onSendVoice?: (blob: Blob, duration: number) => void
   onDelete: (msg: ChatMessage) => void
   onEdit: (msg: ChatMessage) => void
   onPin: (msg: ChatMessage) => void
@@ -21,6 +21,7 @@ interface ChatWindowProps {
   onToggleInfo: () => void
   onBack: () => void
   isLoading?: boolean
+  sending?: boolean
 }
 
 export function ChatWindow({
@@ -37,6 +38,7 @@ export function ChatWindow({
   onToggleInfo,
   onBack,
   isLoading,
+  sending,
 }: ChatWindowProps) {
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [showSearch, setShowSearch] = useState(false)
@@ -88,7 +90,6 @@ export function ChatWindow({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background">
-      {/* Chat Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-card">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="lg:hidden p-2 rounded-xl hover:bg-muted">
@@ -126,7 +127,6 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Search bar */}
       {showSearch && (
         <div className="px-4 py-2 border-b border-border bg-muted/30">
           <div className="relative">
@@ -143,7 +143,6 @@ export function ChatWindow({
         </div>
       )}
 
-      {/* Messages area */}
       <div ref={containerRef} className="flex-1 overflow-y-auto py-4" style={{
         backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(var(--color-primary-rgb, 3, 142, 211)) 0%, transparent 50%)',
         backgroundSize: '200% 200%',
@@ -165,7 +164,7 @@ export function ChatWindow({
               const showDate = shouldShowDateSeparator(msg, filteredMessages[idx - 1])
               const showAv = shouldShowAvatar(msg, idx)
               return (
-                <div key={msg.id}>
+                <div key={msg.id || (msg as any).client_message_id}>
                   {showDate && (
                     <div className="flex justify-center my-4">
                       <span className="px-3 py-1 rounded-full bg-card border border-border text-[11px] text-muted-foreground font-medium shadow-sm">
@@ -191,13 +190,13 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Input */}
       <MessageInput
         onSend={onSend}
         onSendFile={onSendFile}
         onSendVoice={onSendVoice}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
+        sending={sending}
       />
     </div>
   )

@@ -14,6 +14,7 @@ export interface ChatUser {
 
 export interface ChatMessage {
   id: number
+  client_message_id?: string | null
   sender_id: number
   receiver_id?: number | null
   group_id?: number | null
@@ -37,6 +38,7 @@ export interface ChatMessage {
   file_path?: string | null
   reactions?: MessageReaction[]
   read_receipts?: ReadReceipt[]
+  _pending?: boolean
 }
 
 export interface MessageReaction {
@@ -134,4 +136,5 @@ export interface SendMessageParams {
   attachment_name?: string
   attachment_type?: string
   attachment_size?: number
+  client_message_id?: string
 }

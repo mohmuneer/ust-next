@@ -469,19 +469,45 @@ async function handleSendMessage(neonSql: any, request: NextRequest) {
   const attachmentName = body.attachment_name || null
   const attachmentType = body.attachment_type || null
   const attachmentSize = body.attachment_size || null
+  const clientMessageId = body.client_message_id || null
 
   if (!messageText && !attachmentUrl) {
     return NextResponse.json({ success: false, error: 'message is required' }, { status: 400 })
   }
 
-  const sql = `INSERT INTO messages (sender_id, receiver_id, group_id, message_text, message_type, reply_to_id, attachment_url, attachment_name, attachment_type, attachment_size, is_read, created_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, NOW())
-    RETURNING *`
-  const params = [senderId, receiverId, groupId, messageText, messageType, replyToId, attachmentUrl, attachmentName, attachmentType, attachmentSize]
+  if (clientMessageId) {
+    const existing = await neonSql.query(
+      `SELECT * FROM messages WHERE client_message_id = $1 LIMIT 1`,
+      [clientMessageId]
+    ) as any
+    const existingRows = existing?.rows || existing || []
+    if (existingRows.length > 0) {
+      return NextResponse.json({ success: true, data: existingRows[0] })
+    }
+  }
 
-  const result = await neonSql.query(sql, params) as any
-  const rows = result?.rows || result || []
-  return NextResponse.json({ success: true, data: rows[0] || {} })
+  const hasCol = await neonSql.query(
+    `SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='client_message_id') as exists`
+  ) as any
+  const colExists = (hasCol?.rows?.[0] || hasCol?.[0])?.exists
+
+  if (colExists) {
+    const sql = `INSERT INTO messages (client_message_id, sender_id, receiver_id, group_id, message_text, message_type, reply_to_id, attachment_url, attachment_name, attachment_type, attachment_size, is_read, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, NOW())
+      RETURNING *`
+    const params = [clientMessageId, senderId, receiverId, groupId, messageText, messageType, replyToId, attachmentUrl, attachmentName, attachmentType, attachmentSize]
+    const result = await neonSql.query(sql, params) as any
+    const rows = result?.rows || result || []
+    return NextResponse.json({ success: true, data: rows[0] || {} })
+  } else {
+    const sql = `INSERT INTO messages (sender_id, receiver_id, group_id, message_text, message_type, reply_to_id, attachment_url, attachment_name, attachment_type, attachment_size, is_read, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, NOW())
+      RETURNING *`
+    const params = [senderId, receiverId, groupId, messageText, messageType, replyToId, attachmentUrl, attachmentName, attachmentType, attachmentSize]
+    const result = await neonSql.query(sql, params) as any
+    const rows = result?.rows || result || []
+    return NextResponse.json({ success: true, data: rows[0] || {} })
+  }
 }
 
 async function handleMarkAsRead(neonSql: any, otherUserId: string, request: NextRequest) {

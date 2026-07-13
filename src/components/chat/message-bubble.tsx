@@ -108,7 +108,9 @@ export function MessageBubble({ message, isOwn, showAvatar = true, onReply, onEd
             {message.is_edited && <span className="text-[10px]">تعديل</span>}
             <span className="text-[10px]">{formatTime(message.created_at)}</span>
             {isOwn && (
-              message.is_read ? (
+              (message as any)._pending ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin opacity-50" />
+              ) : message.is_read ? (
                 <CheckCheck className="w-4 h-4 text-blue-400" />
               ) : (
                 <Check className="w-4 h-4" />

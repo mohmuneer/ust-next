@@ -13,19 +13,25 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useEmployeeAuthStore } from '@/store/useEmployeeAuthStore'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 
+function generateClientId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+}
+
 export default function ChatPage() {
   const queryClient = useQueryClient()
   const authUser = useAuthStore(s => s.user)
   const empUser = useEmployeeAuthStore(s => s.employee)
   const studentUser = useStudentAuthStore(s => s.student)
   const currentUserId = authUser?.id || empUser?.id || studentUser?.id || 10
+  const currentUserName = authUser?.full_name || empUser?.full_name || studentUser?.full_name || 'مستخدم'
 
   const [selectedConvo, setSelectedConvo] = useState<Conversation | null>(null)
   const [showInfo, setShowInfo] = useState(false)
   const [showNewChat, setShowNewChat] = useState(false)
   const [showCreateGroup, setShowCreateGroup] = useState(false)
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
-  const sendingRef = useRef(false)
+  const [sending, setSending] = useState(false)
+  const sentIdsRef = useRef<Set<string>>(new Set())
 
   const POLL_INTERVAL = 4000
 
@@ -58,26 +64,69 @@ export default function ChatPage() {
     return () => { chatService.updatePresence(currentUserId, false); clearInterval(interval) }
   }, [currentUserId])
 
+  const addOptimisticMessage = useCallback((clientId: string, text: string, msgType: string, extra: Record<string, unknown> = {}) => {
+    const optimisticMsg: ChatMessage = {
+      id: -Date.now(),
+      client_message_id: clientId,
+      sender_id: currentUserId,
+      receiver_id: selectedConvo?.type === 'direct' ? selectedConvo.id : null,
+      group_id: selectedConvo?.type === 'group' ? selectedConvo.id : null,
+      message_text: text,
+      message_type: msgType as ChatMessage['message_type'],
+      is_read: 0,
+      created_at: new Date().toISOString(),
+      full_name: currentUserName,
+      _pending: true,
+      ...extra,
+    }
+    queryClient.setQueryData<ChatMessage[]>(
+      ['chat', 'messages', selectedConvo?.type, selectedConvo?.id],
+      (old = []) => [...old, optimisticMsg]
+    )
+    return optimisticMsg
+  }, [currentUserId, currentUserName, selectedConvo, queryClient])
+
+  const reconcileMessage = useCallback((clientId: string, serverMsg: ChatMessage | null) => {
+    if (!serverMsg) return
+    queryClient.setQueryData<ChatMessage[]>(
+      ['chat', 'messages', selectedConvo?.type, selectedConvo?.id],
+      (old = []) => old.map(m => m.client_message_id === clientId ? { ...serverMsg, _pending: false } : m)
+    )
+  }, [selectedConvo, queryClient])
+
   const handleSend = useCallback(async (text: string, replyToId?: number) => {
-    if (!selectedConvo || sendingRef.current) return
-    sendingRef.current = true
+    if (!selectedConvo || sending) return
+    const clientId = generateClientId()
+    if (sentIdsRef.current.has(clientId)) return
+    sentIdsRef.current.add(clientId)
+    setSending(true)
+
+    addOptimisticMessage(clientId, text, 'text', replyToId ? { reply_to_id: replyToId } : {})
+
     try {
       const data: Record<string, unknown> = {
         sender_id: currentUserId,
         message_text: text,
         message_type: 'text',
+        client_message_id: clientId,
       }
       if (selectedConvo.type === 'group') data.group_id = selectedConvo.id
       else data.receiver_id = selectedConvo.id
       if (replyToId) data.reply_to_id = replyToId
 
-      await chatService.sendMessage(data as any)
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'messages', selectedConvo.type, selectedConvo.id] })
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] })
+      const result = await chatService.sendMessage(data as any)
+      reconcileMessage(clientId, result)
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] })
+    } catch {
+      queryClient.setQueryData<ChatMessage[]>(
+        ['chat', 'messages', selectedConvo?.type, selectedConvo?.id],
+        (old = []) => old.map(m => m.client_message_id === clientId ? { ...m, _pending: false } : m)
+      )
     } finally {
-      sendingRef.current = false
+      setSending(false)
+      sentIdsRef.current.delete(clientId)
     }
-  }, [selectedConvo, currentUserId, queryClient])
+  }, [selectedConvo, currentUserId, sending, queryClient, addOptimisticMessage, reconcileMessage])
 
   const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -87,40 +136,59 @@ export default function ChatPage() {
   })
 
   const handleSendFile = useCallback(async (file: File) => {
-    if (!selectedConvo || sendingRef.current) return
-    sendingRef.current = true
+    if (!selectedConvo || sending) return
+    const clientId = generateClientId()
+    setSending(true)
+
+    const isImage = file.type.startsWith('image/')
+    const msgType = isImage ? 'image' : 'file'
+    addOptimisticMessage(clientId, file.name, msgType, {
+      attachment_name: file.name,
+      attachment_type: file.type,
+      attachment_size: file.size,
+    })
+
     try {
       const base64 = await fileToBase64(file)
-      const isImage = file.type.startsWith('image/')
-
       const data: Record<string, unknown> = {
         sender_id: currentUserId,
         message_text: file.name,
-        message_type: isImage ? 'image' : 'file',
+        message_type: msgType,
         attachment_url: base64,
         attachment_name: file.name,
         attachment_type: file.type,
         attachment_size: file.size,
+        client_message_id: clientId,
       }
       if (selectedConvo.type === 'group') data.group_id = selectedConvo.id
       else data.receiver_id = selectedConvo.id
 
-      await chatService.sendMessage(data as any)
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'messages', selectedConvo.type, selectedConvo.id] })
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] })
+      const result = await chatService.sendMessage(data as any)
+      reconcileMessage(clientId, result)
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] })
     } catch {
-      alert('فشل رفع الملف')
+      queryClient.setQueryData<ChatMessage[]>(
+        ['chat', 'messages', selectedConvo?.type, selectedConvo?.id],
+        (old = []) => old.map(m => m.client_message_id === clientId ? { ...m, _pending: false } : m)
+      )
     } finally {
-      sendingRef.current = false
+      setSending(false)
     }
-  }, [selectedConvo, currentUserId, queryClient])
+  }, [selectedConvo, currentUserId, sending, queryClient, addOptimisticMessage, reconcileMessage])
 
-  const handleSendVoice = useCallback(async (blob: Blob) => {
-    if (!selectedConvo || sendingRef.current) return
-    sendingRef.current = true
+  const handleSendVoice = useCallback(async (blob: Blob, duration: number) => {
+    if (!selectedConvo || sending) return
+    const clientId = generateClientId()
+    setSending(true)
+
+    addOptimisticMessage(clientId, 'رسالة صوتية', 'audio', {
+      attachment_name: `voice-${Date.now()}.webm`,
+      attachment_type: blob.type || 'audio/webm',
+      attachment_size: blob.size,
+    })
+
     try {
       const base64 = await fileToBase64(blob as File)
-
       const data: Record<string, unknown> = {
         sender_id: currentUserId,
         message_text: 'رسالة صوتية',
@@ -129,19 +197,23 @@ export default function ChatPage() {
         attachment_name: `voice-${Date.now()}.webm`,
         attachment_type: blob.type || 'audio/webm',
         attachment_size: blob.size,
+        client_message_id: clientId,
       }
       if (selectedConvo.type === 'group') data.group_id = selectedConvo.id
       else data.receiver_id = selectedConvo.id
 
-      await chatService.sendMessage(data as any)
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'messages', selectedConvo.type, selectedConvo.id] })
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] })
+      const result = await chatService.sendMessage(data as any)
+      reconcileMessage(clientId, result)
+      queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] })
     } catch {
-      alert('فشل رفع التسجيل')
+      queryClient.setQueryData<ChatMessage[]>(
+        ['chat', 'messages', selectedConvo?.type, selectedConvo?.id],
+        (old = []) => old.map(m => m.client_message_id === clientId ? { ...m, _pending: false } : m)
+      )
     } finally {
-      sendingRef.current = false
+      setSending(false)
     }
-  }, [selectedConvo, currentUserId, queryClient])
+  }, [selectedConvo, currentUserId, sending, queryClient, addOptimisticMessage, reconcileMessage])
 
   const handleSelectConversation = useCallback((id: number, type: 'direct' | 'group') => {
     const convo = conversations.find(c => c.id === id && c.type === type) || null
@@ -243,6 +315,7 @@ export default function ChatPage() {
           onToggleInfo={() => setShowInfo(!showInfo)}
           onBack={handleBack}
           isLoading={messagesLoading}
+          sending={sending}
         />
       </div>
 

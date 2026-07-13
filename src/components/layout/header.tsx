@@ -44,7 +44,18 @@ export function Header() {
   const [showSearch, setShowSearch] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [unreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    const uid = user?.id || employee?.id
+    if (!uid) return
+    import('@/services/chat.service').then(({ chatService }) => {
+      const fetchCount = () => chatService.getUnreadCount(uid).then(setUnreadCount).catch(() => {})
+      fetchCount()
+      const interval = setInterval(fetchCount, 5000)
+      return () => clearInterval(interval)
+    })
+  }, [user?.id, employee?.id])
   const moreRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 

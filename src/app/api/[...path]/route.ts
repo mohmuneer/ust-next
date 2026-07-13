@@ -994,6 +994,119 @@ async function handleSpecialEndpoint(
     return NextResponse.json(rows[0] || null)
   }
 
+  if (fullPath === 'student-academic-calendar' && method === 'GET') {
+    try {
+      const studentId = request.nextUrl.searchParams.get('student_id')
+      if (!studentId) return NextResponse.json([])
+      const rows = await neonSql.query(`
+        SELECT ac.* FROM academic_calendar ac
+        WHERE ac.academic_semester_id = (SELECT academic_semester_id FROM students WHERE id = ${esc(studentId)})
+        ORDER BY ac.event_date ASC
+      `)
+      return NextResponse.json(rows)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  if (fullPath === 'student-library-books' && method === 'GET') {
+    try {
+      const q = request.nextUrl.searchParams.get('q')
+      const searchCondition = q
+        ? `AND (b.title ILIKE ${esc('%' + q + '%')} OR b.author ILIKE ${esc('%' + q + '%')} OR b.category ILIKE ${esc('%' + q + '%')})`
+        : ''
+      const rows = await neonSql.query(`
+        SELECT * FROM library_books b WHERE b.status = 'active' ${searchCondition} ORDER BY b.title LIMIT 50
+      `)
+      return NextResponse.json(rows)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  if (fullPath === 'student-library-borrowings' && method === 'GET') {
+    try {
+      const studentId = request.nextUrl.searchParams.get('student_id')
+      if (!studentId) return NextResponse.json([])
+      const rows = await neonSql.query(`
+        SELECT lb.*, b.title as book_title, b.author as book_author
+        FROM library_borrowings lb
+        LEFT JOIN library_books b ON b.id = lb.book_id
+        WHERE lb.student_id = ${esc(studentId)}
+        ORDER BY lb.borrow_date DESC LIMIT 20
+      `)
+      return NextResponse.json(rows)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  if (fullPath === 'student-requests' && method === 'GET') {
+    try {
+      const studentNumber = request.nextUrl.searchParams.get('student_number')
+      if (!studentNumber) return NextResponse.json([])
+      const rows = await neonSql.query(`
+        SELECT r.*, dp.problem_name as issue_type_name
+        FROM requests r
+        LEFT JOIN default_problems dp ON dp.id = r.issue_type_id
+        WHERE r.user_id_number = ${esc(studentNumber)}
+        ORDER BY r.created_at DESC LIMIT 20
+      `)
+      return NextResponse.json(rows)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  if (fullPath === 'student-requests' && method === 'POST') {
+    try {
+      const body = await request.json()
+      const { user_id_number, branch_id, college_id, lab_id, location_name, issue_type_id, study_level_id, department_id, course_name, priority, details } = body
+      const rows = await neonSql.query(`
+        INSERT INTO requests (user_id_number, branch_id, college_id, lab_id, location_name, issue_type_id, study_level_id, department_id, course_name, priority, details)
+        VALUES (${esc(user_id_number)}, ${esc(branch_id)}, ${esc(college_id)}, ${esc(lab_id)}, ${esc(location_name)}, ${esc(issue_type_id)}, ${esc(study_level_id)}, ${esc(department_id)}, ${esc(course_name)}, ${esc(priority)}, ${esc(details)})
+        RETURNING *
+      `)
+      return NextResponse.json(rows[0], { status: 201 })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  if (fullPath === 'student-announcements' && method === 'GET') {
+    try {
+      const rows = await neonSql.query(`
+        SELECT * FROM university_news
+        WHERE (is_published = true OR category = 'announcement')
+        ORDER BY created_at DESC LIMIT 20
+      `)
+      return NextResponse.json(rows)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
+  if (fullPath === 'student-course-assignments' && method === 'GET') {
+    try {
+      const studentId = request.nextUrl.searchParams.get('student_id')
+      if (!studentId) return NextResponse.json([])
+      const rows = await neonSql.query(`
+        SELECT cs.*, ss.subject_name, ss.subject_code
+        FROM course_syllabi cs
+        LEFT JOIN study_subjects ss ON ss.id = cs.study_subject_id
+        WHERE cs.study_subject_id IN (
+          SELECT DISTINCT ss2.study_subject_id
+          FROM study_schedules ss2
+          WHERE ss2.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)})
+        )
+        ORDER BY ss.subject_name
+      `)
+      return NextResponse.json(rows)
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+  }
+
   return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
 }
 

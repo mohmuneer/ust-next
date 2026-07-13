@@ -7,7 +7,7 @@ import {
   LayoutDashboard, User, Calendar, BookOpen, Award, UserCheck,
   Bell, MessageSquare, FileText, CreditCard, Download, LogOut,
   QrCode, Menu, ChevronDown, Search, X, GraduationCap, BookCopy,
-  Monitor, FileQuestion,
+  Monitor, FileQuestion, Megaphone, Library, ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
@@ -71,6 +71,16 @@ const menuGroups: MenuGroup[] = [
     items: [
       { title: 'الرسوم المالية', icon: CreditCard, href: '/student/fees' },
       { title: 'المستندات', icon: Download, href: '/student/documents' },
+    ],
+  },
+  {
+    groupKey: 'خدمات أكاديمية',
+    items: [
+      { title: 'الواجبات', icon: BookOpen, href: '/student/assignments' },
+      { title: 'التقويم الأكاديمي', icon: Calendar, href: '/student/academic-calendar' },
+      { title: 'المكتبة', icon: Library, href: '/student/library' },
+      { title: 'الإعلانات', icon: Megaphone, href: '/student/announcements' },
+      { title: 'الطلبات والشكاوى', icon: ClipboardList, href: '/student/requests' },
     ],
   },
 ]

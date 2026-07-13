@@ -39,6 +39,17 @@ function getRequiredRoles(pathname: string): UserType[] | null {
 }
 
 async function verifyTokenFromRequest(request: NextRequest): Promise<{ valid: boolean; type?: UserType }> {
+  const authHeader = request.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET)
+      if (payload.type && ['student', 'employee', 'user'].includes(payload.type as string)) {
+        return { valid: true, type: payload.type as UserType }
+      }
+    } catch { /* invalid */ }
+  }
+
   const cookies = request.cookies
 
   const cookieMap: Record<string, UserType> = {

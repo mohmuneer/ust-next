@@ -12,6 +12,8 @@ interface ChatWindowProps {
   messages: ChatMessage[]
   currentUserId: number
   onSend: (text: string, replyToId?: number) => void
+  onSendFile?: (file: File) => void
+  onSendVoice?: (blob: Blob) => void
   onDelete: (msg: ChatMessage) => void
   onEdit: (msg: ChatMessage) => void
   onPin: (msg: ChatMessage) => void
@@ -26,6 +28,8 @@ export function ChatWindow({
   messages,
   currentUserId,
   onSend,
+  onSendFile,
+  onSendVoice,
   onDelete,
   onEdit,
   onPin,
@@ -190,6 +194,8 @@ export function ChatWindow({
       {/* Input */}
       <MessageInput
         onSend={onSend}
+        onSendFile={onSendFile}
+        onSendVoice={onSendVoice}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
       />

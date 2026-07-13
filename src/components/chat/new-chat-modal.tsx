@@ -10,7 +10,7 @@ interface NewChatModalProps {
   isOpen: boolean
   onClose: () => void
   currentUserId: number
-  onSelectUser: (userId: number) => void
+  onSelectUser: (userId: number, name?: string, role?: string, avatar?: string) => void
 }
 
 export function NewChatModal({ isOpen, onClose, currentUserId, onSelectUser }: NewChatModalProps) {
@@ -27,8 +27,8 @@ export function NewChatModal({ isOpen, onClose, currentUserId, onSelectUser }: N
     setLoading(false)
   }
 
-  const handleSelect = (userId: number) => {
-    onSelectUser(userId)
+  const handleSelect = (user: any) => {
+    onSelectUser(user.id, user.full_name, user.role, user.file_path)
     setQuery('')
     setResults([])
     onClose()
@@ -64,7 +64,7 @@ export function NewChatModal({ isOpen, onClose, currentUserId, onSelectUser }: N
               {results.map((user: any) => (
                 <button
                   key={user.id}
-                  onClick={() => handleSelect(user.id)}
+                  onClick={() => handleSelect(user)}
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors"
                 >
                   <UserAvatar src={user.file_path} name={user.full_name} size="md" />

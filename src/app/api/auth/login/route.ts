@@ -25,7 +25,11 @@ export async function POST(request: Request) {
     }
 
     const result = await query(
-      `SELECT id, full_name, email, password, status FROM users WHERE email = $1 LIMIT 1`,
+      `SELECT u.id, u.full_name, u.email, u.password, u.status, r.role_name, r.role_code
+       FROM users u
+       LEFT JOIN user_permision up ON up.user_id = u.id
+       LEFT JOIN roles r ON r.id = up.role_id
+       WHERE u.email = $1 LIMIT 1`,
       [email]
     )
 
@@ -72,6 +76,8 @@ export async function POST(request: Request) {
         id: user.id,
         full_name: user.full_name,
         email: user.email,
+        role_name: user.role_name || null,
+        role_code: user.role_code || null,
       },
       token,
     })

@@ -137,7 +137,7 @@ async function handleRequest(request: NextRequest, method: string) {
   } catch (error) {
     console.error(`DB API error [${method}]:`, error)
     if (method === 'GET') return NextResponse.json([])
-    return NextResponse.json({ success: true, message: 'تمت العملية بنجاح' })
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 })
   }
 }
 
@@ -474,11 +474,13 @@ async function handleSendMessage(neonSql: any, request: NextRequest) {
     return NextResponse.json({ success: false, error: 'message is required' }, { status: 400 })
   }
 
-  const rows = await neonSql.query(`
-    INSERT INTO messages (sender_id, receiver_id, group_id, message_text, message_type, reply_to_id, attachment_url, attachment_name, attachment_type, attachment_size, is_read, created_at)
-    VALUES (${esc(senderId)}, ${esc(receiverId)}, ${esc(groupId)}, ${esc(messageText)}, ${esc(messageType)}, ${esc(replyToId)}, ${esc(attachmentUrl)}, ${esc(attachmentName)}, ${esc(attachmentType)}, ${esc(attachmentSize)}, 0, NOW())
-    RETURNING *
-  `) as any[]
+  const sql = `INSERT INTO messages (sender_id, receiver_id, group_id, message_text, message_type, reply_to_id, attachment_url, attachment_name, attachment_type, attachment_size, is_read, created_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, NOW())
+    RETURNING *`
+  const params = [senderId, receiverId, groupId, messageText, messageType, replyToId, attachmentUrl, attachmentName, attachmentType, attachmentSize]
+
+  const result = await neonSql.query(sql, params) as any
+  const rows = result?.rows || result || []
   return NextResponse.json({ success: true, data: rows[0] || {} })
 }
 

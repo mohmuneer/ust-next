@@ -1099,20 +1099,155 @@ async function handleStudentDashboard(neonSql: any, request: NextRequest) {
   const params = request.nextUrl.searchParams
   const studentId = params.get('student_id') || '1'
 
-  const [student, enrollments, schedules, fees, gpa] = await Promise.all([
-    neonSql.query(`SELECT * FROM students WHERE id = ${esc(studentId)} LIMIT 1`).then((r: any) => r[0] || null),
-    neonSql.query(`SELECT * FROM student_enrollments WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 5`),
-    neonSql.query(`SELECT ss.*, ssr.subject_name FROM study_schedules ss LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id WHERE ss.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)}) ORDER BY ss.day_of_week LIMIT 10`),
-    neonSql.query(`SELECT * FROM student_fees WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 10`),
-    neonSql.query(`SELECT * FROM student_semester_gpa WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 5`),
-  ]).catch(() => [null, [], [], [], []])
+  const [
+    studentRes,
+    enrollmentsRes,
+    schedulesRes,
+    feesRes,
+    gpaRes,
+    examsRes,
+    notificationsRes,
+    attendanceRes,
+    announcementsRes,
+    calendarRes,
+  ] = await Promise.all([
+    neonSql.query(`
+      SELECT s.*, c.college_name, d.department_name, sl.level_name, sg.group_name,
+             sem.semester_name, sem.id as semester_id, sem.start_date as semester_start, sem.end_date as semester_end
+      FROM students s
+      LEFT JOIN colleges c ON c.id = s.college_id
+      LEFT JOIN departments d ON d.id = s.department_id
+      LEFT JOIN study_levels sl ON sl.id = s.study_level_id
+      LEFT JOIN study_groups sg ON sg.id = s.study_group_id
+      LEFT JOIN academic_semesters sem ON sem.id = s.academic_semester_id
+      WHERE s.id = ${esc(studentId)} LIMIT 1
+    `).then((r: any) => r[0] || null),
+
+    neonSql.query(`
+      SELECT se.*, sl.level_name, sg.group_name, ssr.subject_name
+      FROM student_enrollments se
+      LEFT JOIN study_levels sl ON sl.id = se.study_level_id
+      LEFT JOIN study_groups sg ON sg.id = se.study_group_id
+      LEFT JOIN study_subjects ssr ON ssr.study_level_id = se.study_level_id AND ssr.study_group_id = se.study_group_id
+      WHERE se.student_id = ${esc(studentId)}
+      ORDER BY se.id DESC LIMIT 10
+    `),
+
+    neonSql.query(`
+      SELECT ss.*, ssr.subject_name, ssr.subject_code,
+             e.full_name as employee_name, sg2.group_name as schedule_group_name
+      FROM study_schedules ss
+      LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id
+      LEFT JOIN employees e ON ss.employee_id = e.id
+      LEFT JOIN study_groups sg2 ON sg2.id = ss.study_group_id
+      WHERE ss.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)})
+      ORDER BY ss.day_of_week, ss.start_time
+    `),
+
+    neonSql.query(`
+      SELECT sf.*, ft.fee_name
+      FROM student_fees sf
+      LEFT JOIN fee_types ft ON ft.id = sf.fee_type_id
+      WHERE sf.student_id = ${esc(studentId)}
+      ORDER BY sf.id DESC LIMIT 10
+    `),
+
+    neonSql.query(`
+      SELECT * FROM student_semester_gpa
+      WHERE student_id = ${esc(studentId)}
+      ORDER BY id DESC LIMIT 5
+    `),
+
+    neonSql.query(`
+      SELECT es.*, ex.title, ex.total_marks, ex.pass_mark, ex.exam_date, ex.start_time, ex.duration_minutes,
+             ssr.subject_name
+      FROM exam_schedules es
+      LEFT JOIN exams ex ON ex.id = es.exam_id
+      LEFT JOIN study_subjects ssr ON ssr.id = ex.subject_id
+      WHERE es.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)})
+        AND es.exam_date >= CURRENT_DATE
+      ORDER BY es.exam_date, es.start_time
+      LIMIT 5
+    `),
+
+    neonSql.query(`
+      SELECT * FROM notifications
+      WHERE user_id = ${esc(studentId)}
+         OR target_type = 'all'
+         OR (target_type = 'student' AND target_id = ${esc(studentId)})
+      ORDER BY created_at DESC LIMIT 10
+    `),
+
+    neonSql.query(`
+      SELECT ar.*, ssr.subject_name
+      FROM attendance_records ar
+      LEFT JOIN attendance_sessions asess ON asess.id = ar.attendance_session_id
+      LEFT JOIN study_subjects ssr ON ssr.id = asess.study_subject_id
+      WHERE ar.student_id = ${esc(studentId)}
+      ORDER BY ar.id DESC
+    `).then((rows: any[]) => {
+      const total = rows.length
+      const present = rows.filter((r: any) => r.status === 'present' || r.status === 'attended').length
+      const absent = rows.filter((r: any) => r.status === 'absent').length
+      const late = rows.filter((r: any) => r.status === 'late').length
+      const excused = rows.filter((r: any) => r.status === 'excused').length
+      const percentage = total > 0 ? Math.round((present / total) * 100) : 0
+      return { total, present, absent, late, excused, percentage, records: rows.slice(0, 5) }
+    }),
+
+    neonSql.query(`
+      SELECT * FROM university_news
+      WHERE status = 'published'
+         OR category = 'announcement'
+      ORDER BY created_at DESC LIMIT 10
+    `),
+
+    neonSql.query(`
+      SELECT * FROM academic_calendar
+      WHERE academic_semester_id = (SELECT academic_semester_id FROM students WHERE id = ${esc(studentId)})
+      ORDER BY event_date ASC
+    `),
+
+  ]).catch(() => [null, [], [], [], [], [], [], { total: 0, present: 0, absent: 0, late: 0, excused: 0, percentage: 0, records: [] }, [], []])
+
+  const student = studentRes as any
+  const semester = student ? { id: student.semester_id, semester_name: student.semester_name, start_date: student.semester_start, end_date: student.semester_end } : null
+
+  const enrollments = (enrollmentsRes as any[]) || []
+  const schedules = (schedulesRes as any[]) || []
+  const fees = (feesRes as any[]) || []
+  const gpa = (gpaRes as any[]) || []
+  const upcomingExams = (examsRes as any[]) || []
+  const notifications = (notificationsRes as any[]) || []
+  const attendance = attendanceRes as any
+  const announcements = (announcementsRes as any[]) || []
+  const calendar = (calendarRes as any[]) || []
+
+  const totalHours = schedules.reduce((sum: number, s: any) => sum + (parseFloat(s.weekly_hours) || 0), 0)
+  const latestGpa = gpa.length > 0 ? gpa[0] : null
+  const totalPaid = fees.filter((f: any) => f.status === 'paid').reduce((sum: number, f: any) => sum + (parseFloat(f.paid_amount) || 0), 0)
+  const totalDue = fees.filter((f: any) => f.status !== 'paid').reduce((sum: number, f: any) => sum + (parseFloat(f.remaining_amount) || parseFloat(f.amount) || 0), 0)
 
   return NextResponse.json({
     student,
-    enrollments,
-    schedules,
-    fees,
-    gpa,
+    semester,
+    statistics: {
+      total_subjects: schedules.length,
+      total_hours: totalHours,
+      cumulative_gpa: student?.cumulative_gpa || null,
+      total_earned_hours: student?.total_earned_hours || 0,
+      semester_gpa: latestGpa?.semester_gpa || null,
+      attendance_percentage: attendance.percentage,
+    },
+    schedule: schedules,
+    courses: enrollments,
+    attendance,
+    grades: gpa,
+    fees: { items: fees, total_paid: totalPaid, total_due: totalDue },
+    upcomingExams,
+    notifications,
+    announcements,
+    calendar,
   })
 }
 

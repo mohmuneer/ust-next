@@ -191,7 +191,7 @@ async function handleList(neonSql: any, request: NextRequest, table: string) {
 
   const where = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''
   const sql = `SELECT * FROM ${table}${where} ORDER BY id DESC LIMIT 200`
-  const rows = await neonSql.unsafe(sql)
+  const rows = await neonSql.query(sql)
   return NextResponse.json(rows)
 }
 
@@ -199,7 +199,7 @@ async function handleGetById(neonSql: any, table: string, id: string, subPath: s
   if (subPath) {
     return handleSubPath(neonSql, table, id, subPath)
   }
-  const rows = await neonSql.unsafe(`SELECT * FROM ${table} WHERE id = ${esc(id)} LIMIT 1`)
+  const rows = await neonSql.query(`SELECT * FROM ${table} WHERE id = ${esc(id)} LIMIT 1`)
   if (rows.length === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
@@ -208,51 +208,51 @@ async function handleGetById(neonSql: any, table: string, id: string, subPath: s
 
 async function handleSubPath(neonSql: any, table: string, parentId: string, subPath: string) {
   if (table === 'students' && subPath === 'enrollments') {
-    const rows = await neonSql.unsafe(`SELECT * FROM student_enrollments WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM student_enrollments WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'students' && subPath === 'fees') {
-    const rows = await neonSql.unsafe(`SELECT * FROM student_fees WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM student_fees WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'students' && subPath === 'grades') {
-    const rows = await neonSql.unsafe(`SELECT * FROM exam_grades WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM exam_grades WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'students' && subPath === 'attendance') {
-    const rows = await neonSql.unsafe(`SELECT * FROM attendance_records WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM attendance_records WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'students' && subPath === 'gpa') {
-    const rows = await neonSql.unsafe(`SELECT * FROM student_semester_gpa WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM student_semester_gpa WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'students' && subPath === 'academic-records') {
-    const rows = await neonSql.unsafe(`SELECT * FROM academic_records WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM academic_records WHERE student_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'exams' && subPath === 'questions') {
-    const rows = await neonSql.unsafe(`SELECT * FROM exam_questions WHERE exam_id = ${esc(parentId)} ORDER BY sort_order`)
+    const rows = await neonSql.query(`SELECT * FROM exam_questions WHERE exam_id = ${esc(parentId)} ORDER BY sort_order`)
     return NextResponse.json(rows)
   }
   if (table === 'employees' && subPath === 'certificates') {
-    const rows = await neonSql.unsafe(`SELECT * FROM employee_certificates WHERE employee_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM employee_certificates WHERE employee_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'employees' && subPath === 'assignments') {
-    const rows = await neonSql.unsafe(`SELECT * FROM employee_assignments WHERE employee_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM employee_assignments WHERE employee_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'employees' && subPath === 'preferences') {
-    const rows = await neonSql.unsafe(`SELECT * FROM faculty_preferences WHERE employee_id = ${esc(parentId)} ORDER BY id DESC`)
+    const rows = await neonSql.query(`SELECT * FROM faculty_preferences WHERE employee_id = ${esc(parentId)} ORDER BY id DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'messages' && subPath === 'conversations') {
-    const rows = await neonSql.unsafe(`SELECT * FROM messages WHERE sender_id = ${esc(parentId)} OR receiver_id = ${esc(parentId)} ORDER BY created_at DESC`)
+    const rows = await neonSql.query(`SELECT * FROM messages WHERE sender_id = ${esc(parentId)} OR receiver_id = ${esc(parentId)} ORDER BY created_at DESC`)
     return NextResponse.json(rows)
   }
   if (table === 'messages' && subPath === 'unread-count') {
-    const rows = await neonSql.unsafe(`SELECT COUNT(*)::int as count FROM messages WHERE receiver_id = ${esc(parentId)} AND is_read = 0`)
+    const rows = await neonSql.query(`SELECT COUNT(*)::int as count FROM messages WHERE receiver_id = ${esc(parentId)} AND is_read = 0`)
     return NextResponse.json(rows[0] || { count: 0 })
   }
 
@@ -269,7 +269,7 @@ async function handleCreate(neonSql: any, request: NextRequest, table: string) {
   const values = keys.map(k => esc(body[k]))
 
   const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${values.join(', ')}) RETURNING *`
-  const rows = await neonSql.unsafe(sql)
+  const rows = await neonSql.query(sql)
   return NextResponse.json(rows[0] || { success: true })
 }
 
@@ -281,12 +281,12 @@ async function handleUpdate(neonSql: any, request: NextRequest, table: string, i
 
   const sets = Object.keys(body).map(k => `${k} = ${esc(body[k])}`)
   const sql = `UPDATE ${table} SET ${sets.join(', ')} WHERE id = ${esc(id)} RETURNING *`
-  const rows = await neonSql.unsafe(sql)
+  const rows = await neonSql.query(sql)
   return NextResponse.json(rows[0] || { success: true })
 }
 
 async function handleDelete(neonSql: any, table: string, id: string) {
-  await neonSql.unsafe(`DELETE FROM ${table} WHERE id = ${esc(id)}`)
+  await neonSql.query(`DELETE FROM ${table} WHERE id = ${esc(id)}`)
   return NextResponse.json({ success: true, message: 'تم الحذف بنجاح' })
 }
 
@@ -302,7 +302,7 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'attendance-logs' && method === 'GET') {
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT ar.*, s.full_name as student_name, ats.session_date, ats.start_time, ats.end_time
       FROM attendance_records ar
       JOIN students s ON ar.student_id = s.id
@@ -313,7 +313,7 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'attendance-reports' && method === 'GET') {
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT s.id as student_id, s.full_name, s.student_number,
         COUNT(ar.id) FILTER (WHERE ar.status = 'present') as present_count,
         COUNT(ar.id) FILTER (WHERE ar.status = 'absent') as absent_count,
@@ -329,7 +329,7 @@ async function handleSpecialEndpoint(
 
   if (parts[0] === 'attendance-stats' && parts[1]) {
     const studentId = parts[1]
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT
         COUNT(*) FILTER (WHERE ar.status = 'present')::int as present,
         COUNT(*) FILTER (WHERE ar.status = 'absent')::int as absent,
@@ -348,7 +348,7 @@ async function handleSpecialEndpoint(
     const params = request.nextUrl.searchParams
     const studentId = params.get('student_id')
     if (!studentId) return NextResponse.json([])
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT ss.*, ssr.subject_name as study_subject_name
       FROM study_schedules ss
       LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id
@@ -359,7 +359,7 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'master-timetable' && method === 'GET') {
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT ss.*, ssr.subject_name, e.full_name as employee_name
       FROM study_schedules ss
       LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id
@@ -370,7 +370,7 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'db-schema' && method === 'GET') {
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT table_name, column_name, data_type, is_nullable
       FROM information_schema.columns
       WHERE table_schema = 'public'
@@ -380,7 +380,7 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'issue-types' && method === 'GET') {
-    const rows = await neonSql.unsafe(`SELECT * FROM default_problems ORDER BY id`)
+    const rows = await neonSql.query(`SELECT * FROM default_problems ORDER BY id`)
     return NextResponse.json(rows)
   }
 
@@ -389,7 +389,7 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'role-page-permissions' && parts[1] === 'user' && parts[2]) {
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT rpp.*, r.role_name
       FROM role_page_permissions rpp
       JOIN roles r ON rpp.role_id = r.id
@@ -400,7 +400,7 @@ async function handleSpecialEndpoint(
   }
 
   if (fullPath === 'role-page-permissions' && parts[1] === 'employee' && parts[2]) {
-    const rows = await neonSql.unsafe(`
+    const rows = await neonSql.query(`
       SELECT rpp.*, r.role_name
       FROM role_page_permissions rpp
       JOIN roles r ON rpp.role_id = r.id
@@ -413,13 +413,13 @@ async function handleSpecialEndpoint(
   if (fullPath.startsWith('role-page-permissions/') && parts[1] && parts[2] === 'bulk') {
     const roleId = parts[1]
     if (method === 'GET') {
-      const rows = await neonSql.unsafe(`SELECT * FROM role_page_permissions WHERE role_id = ${esc(roleId)} ORDER BY page_key`)
+      const rows = await neonSql.query(`SELECT * FROM role_page_permissions WHERE role_id = ${esc(roleId)} ORDER BY page_key`)
       return NextResponse.json(rows)
     }
   }
 
   if (fullPath === 'auth/profile' && method === 'GET') {
-    const rows = await neonSql.unsafe(`SELECT id, full_name, email, status FROM users ORDER BY id LIMIT 1`)
+    const rows = await neonSql.query(`SELECT id, full_name, email, status FROM users ORDER BY id LIMIT 1`)
     return NextResponse.json(rows[0] || null)
   }
 
@@ -443,20 +443,20 @@ async function handleDashboardStats(neonSql: any) {
     tasksRes,
     recentRequestsRes,
   ] = await Promise.all([
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','closed'))::int AS resolved, COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled FROM requests`).then((r: any) => r[0] || { total: 0, pending: 0, in_progress: 0, resolved: 0, cancelled: 0 }),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM users`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM colleges`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM departments`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM labs`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_levels`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_groups`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM study_subjects`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM academic_semesters`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM guardians`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM exams`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total FROM students`).then((r: any) => r[0]?.total || 0),
-    neonSql.unsafe(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','done'))::int AS completed FROM tasks`).then((r: any) => r[0] || { total: 0, pending: 0, in_progress: 0, completed: 0 }),
-    neonSql.unsafe(`SELECT * FROM requests ORDER BY created_at DESC LIMIT 10`).then((r: any) => r),
+    neonSql.query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','closed'))::int AS resolved, COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled FROM requests`).then((r: any) => r[0] || { total: 0, pending: 0, in_progress: 0, resolved: 0, cancelled: 0 }),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM users`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM colleges`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM departments`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM labs`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM study_levels`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM study_groups`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM study_subjects`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM academic_semesters`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM guardians`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM exams`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total FROM students`).then((r: any) => r[0]?.total || 0),
+    neonSql.query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'pending')::int AS pending, COUNT(*) FILTER (WHERE status IN ('in_progress','in-progress','processing'))::int AS in_progress, COUNT(*) FILTER (WHERE status IN ('resolved','completed','done'))::int AS completed FROM tasks`).then((r: any) => r[0] || { total: 0, pending: 0, in_progress: 0, completed: 0 }),
+    neonSql.query(`SELECT * FROM requests ORDER BY created_at DESC LIMIT 10`).then((r: any) => r),
   ]).catch(() => [null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, null, []])
 
   const req = requestsRes || { total: 0, pending: 0, in_progress: 0, resolved: 0, cancelled: 0 }
@@ -467,7 +467,7 @@ async function handleDashboardStats(neonSql: any) {
   let monthlyTrends: { month: string; count: number }[] = []
 
   try {
-    statusDist = await neonSql.unsafe(`
+    statusDist = await neonSql.query(`
       SELECT CASE status WHEN 'pending' THEN 'معلق' WHEN 'in_progress' THEN 'قيد التنفيذ' WHEN 'in-progress' THEN 'قيد التنفيذ' WHEN 'processing' THEN 'قيد التنفيذ' WHEN 'resolved' THEN 'تم الحل' WHEN 'completed' THEN 'تم الحل' WHEN 'closed' THEN 'تم الحل' WHEN 'cancelled' THEN 'ملغي' ELSE status END AS label,
         COUNT(*)::int AS count,
         CASE status WHEN 'pending' THEN '#f59e0b' WHEN 'in_progress' THEN '#3b82f6' WHEN 'in-progress' THEN '#3b82f6' WHEN 'processing' THEN '#3b82f6' WHEN 'resolved' THEN '#22c55e' WHEN 'completed' THEN '#22c55e' WHEN 'closed' THEN '#22c55e' WHEN 'cancelled' THEN '#ef4444' ELSE '#6b7280' END AS color
@@ -476,7 +476,7 @@ async function handleDashboardStats(neonSql: any) {
   } catch { /* ignore */ }
 
   try {
-    priorityDist = await neonSql.unsafe(`
+    priorityDist = await neonSql.query(`
       SELECT CASE priority WHEN 'high' THEN 'عالية' WHEN 'medium' THEN 'متوسطة' WHEN 'low' THEN 'منخفضة' ELSE priority END AS label,
         COUNT(*)::int AS count,
         CASE priority WHEN 'high' THEN '#ef4444' WHEN 'medium' THEN '#f59e0b' WHEN 'low' THEN '#22c55e' ELSE '#6b7280' END AS color
@@ -485,7 +485,7 @@ async function handleDashboardStats(neonSql: any) {
   } catch { /* ignore */ }
 
   try {
-    monthlyTrends = await neonSql.unsafe(`
+    monthlyTrends = await neonSql.query(`
       SELECT TO_CHAR(created_at, 'YYYY-MM') AS month, COUNT(*)::int AS count
       FROM requests WHERE created_at >= NOW() - INTERVAL '12 months'
       GROUP BY TO_CHAR(created_at, 'YYYY-MM') ORDER BY month ASC
@@ -529,11 +529,11 @@ async function handleStudentDashboard(neonSql: any, request: NextRequest) {
   const studentId = params.get('student_id') || '1'
 
   const [student, enrollments, schedules, fees, gpa] = await Promise.all([
-    neonSql.unsafe(`SELECT * FROM students WHERE id = ${esc(studentId)} LIMIT 1`).then((r: any) => r[0] || null),
-    neonSql.unsafe(`SELECT * FROM student_enrollments WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 5`),
-    neonSql.unsafe(`SELECT ss.*, ssr.subject_name FROM study_schedules ss LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id WHERE ss.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)}) ORDER BY ss.day_of_week LIMIT 10`),
-    neonSql.unsafe(`SELECT * FROM student_fees WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 10`),
-    neonSql.unsafe(`SELECT * FROM student_semester_gpa WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 5`),
+    neonSql.query(`SELECT * FROM students WHERE id = ${esc(studentId)} LIMIT 1`).then((r: any) => r[0] || null),
+    neonSql.query(`SELECT * FROM student_enrollments WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 5`),
+    neonSql.query(`SELECT ss.*, ssr.subject_name FROM study_schedules ss LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id WHERE ss.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)}) ORDER BY ss.day_of_week LIMIT 10`),
+    neonSql.query(`SELECT * FROM student_fees WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 10`),
+    neonSql.query(`SELECT * FROM student_semester_gpa WHERE student_id = ${esc(studentId)} ORDER BY id DESC LIMIT 5`),
   ]).catch(() => [null, [], [], [], []])
 
   return NextResponse.json({

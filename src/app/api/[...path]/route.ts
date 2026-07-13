@@ -155,7 +155,37 @@ async function handleDbRequest(request: NextRequest, method: string) {
   if (fullPath === 'messages/unread-count' && method === 'GET') {
     return handleUnreadCount(neonSql, request)
   }
-  if (basePath === 'messages' && resourceId && resourceId !== 'conversations' && resourceId !== 'unread-count' && !subPath && method === 'GET') {
+  if (basePath === 'messages' && resourceId && resourceId === 'users' && subPath === 'search' && method === 'GET') {
+    return handleUserSearch(neonSql, request)
+  }
+  if (basePath === 'messages' && resourceId && resourceId === 'search' && method === 'GET') {
+    return handleMessageSearch(neonSql, request)
+  }
+  if (basePath === 'messages' && resourceId === 'groups' && method === 'GET') {
+    return handleGroups(neonSql, request, method)
+  }
+  if (basePath === 'messages' && resourceId === 'groups' && method === 'POST') {
+    return handleGroups(neonSql, request, method)
+  }
+  if (basePath === 'messages' && resourceId === 'groups' && parts[2] === 'members' && method === 'GET') {
+    return handleGroupMembers(neonSql, parts[1])
+  }
+  if (basePath === 'messages' && resourceId === 'presence' && method === 'PUT') {
+    return handlePresence(neonSql, request, method)
+  }
+  if (basePath === 'messages' && resourceId === 'presence' && parts[2] && method === 'GET') {
+    return handlePresenceGet(neonSql, parts[2])
+  }
+  if (basePath === 'messages' && resourceId === 'group' && parts[2] && parts[3] === 'read' && method === 'PUT') {
+    return handleMarkGroupAsRead(neonSql, parts[2], request)
+  }
+  if (basePath === 'messages' && resourceId === 'group' && parts[2] && method === 'GET') {
+    return handleGroupMessages(neonSql, parts[2])
+  }
+  if (basePath === 'messages' && resourceId && resourceId !== 'conversations' && resourceId !== 'unread-count' && resourceId !== 'users' && resourceId !== 'search' && resourceId !== 'groups' && resourceId !== 'presence' && resourceId !== 'group' && parts.length === 3 && parts[2] === 'read' && method === 'PUT') {
+    return handleMarkAsRead(neonSql, resourceId, request)
+  }
+  if (basePath === 'messages' && resourceId && resourceId !== 'conversations' && resourceId !== 'unread-count' && resourceId !== 'users' && resourceId !== 'search' && resourceId !== 'groups' && resourceId !== 'presence' && resourceId !== 'group' && !subPath && method === 'GET') {
     return handleMessagesThread(neonSql, resourceId)
   }
   if (basePath === 'messages' && method === 'POST') {
@@ -298,35 +328,82 @@ async function handleDelete(neonSql: any, table: string, id: string) {
 async function handleConversations(neonSql: any, request: NextRequest) {
   const params = request.nextUrl.searchParams
   const userId = params.get('user_id') || '10'
-  const rows = await neonSql.query(`
-    WITH latest_messages AS (
+
+  const [directConvos, groupConvos] = await Promise.all([
+    neonSql.query(`
+      WITH latest_messages AS (
+        SELECT
+          CASE WHEN sender_id = ${esc(userId)} THEN receiver_id ELSE sender_id END AS other_user_id,
+          message_text AS last_message,
+          message_type AS last_message_type,
+          created_at,
+          is_read,
+          ROW_NUMBER() OVER (
+            PARTITION BY CASE WHEN sender_id = ${esc(userId)} THEN receiver_id ELSE sender_id END
+            ORDER BY created_at DESC
+          ) AS rn
+        FROM messages
+        WHERE (sender_id = ${esc(userId)} OR receiver_id = ${esc(userId)})
+          AND group_id IS NULL AND is_deleted = FALSE
+      )
       SELECT
-        CASE WHEN sender_id = ${esc(userId)} THEN receiver_id ELSE sender_id END AS other_user_id,
-        message_text AS last_message,
-        created_at,
-        is_read,
-        ROW_NUMBER() OVER (
-          PARTITION BY CASE WHEN sender_id = ${esc(userId)} THEN receiver_id ELSE sender_id END
-          ORDER BY created_at DESC
-        ) AS rn
-      FROM messages
-      WHERE sender_id = ${esc(userId)} OR receiver_id = ${esc(userId)}
-    )
-    SELECT
-      lm.other_user_id AS id,
-      lm.last_message,
-      lm.created_at,
-      lm.is_read,
-      COALESCE(s.full_name, e.full_name, 'مستخدم ' || lm.other_user_id) AS full_name,
-      (SELECT COUNT(*)::int FROM messages WHERE sender_id = lm.other_user_id AND receiver_id = ${esc(userId)} AND is_read = 0) AS unread_count
-    FROM latest_messages lm
-    LEFT JOIN users u ON u.id = lm.other_user_id
-    LEFT JOIN students s ON s.id = lm.other_user_id
-    LEFT JOIN employees e ON e.id = lm.other_user_id
-    WHERE lm.rn = 1
-    ORDER BY lm.created_at DESC
-  `) as any[]
-  return NextResponse.json(rows)
+        lm.other_user_id AS id,
+        'direct' AS type,
+        lm.last_message,
+        lm.last_message_type,
+        lm.created_at,
+        lm.is_read,
+        COALESCE(s.full_name, u.full_name, 'مستخدم ' || lm.other_user_id) AS full_name,
+        u.file_path,
+        (SELECT COUNT(*)::int FROM messages WHERE sender_id = lm.other_user_id AND receiver_id = ${esc(userId)} AND is_read = 0 AND is_deleted = FALSE) AS unread_count,
+        COALESCE(
+          (SELECT is_pinned FROM chat_group_members WHERE user_id = ${esc(userId)} AND group_id = lm.other_user_id),
+          FALSE
+        ) AS is_pinned,
+        COALESCE(s2.college_name, '') AS college_name,
+        COALESCE(d2.department_name, '') AS department_name,
+        COALESCE(jt.title_name, '') AS job_title
+      FROM latest_messages lm
+      LEFT JOIN users u ON u.id = lm.other_user_id
+      LEFT JOIN students s ON s.id = lm.other_user_id
+      LEFT JOIN employees e ON e.id = lm.other_user_id
+      LEFT JOIN colleges s2 ON s2.id = s.college_id
+      LEFT JOIN departments d2 ON d2.id = s.department_id
+      LEFT JOIN job_titles jt ON jt.id = e.job_title_id
+      WHERE lm.rn = 1
+      ORDER BY lm.created_at DESC
+    `),
+    neonSql.query(`
+      SELECT
+        cg.id,
+        'group' AS type,
+        COALESCE(lm.message_text, '') AS last_message,
+        COALESCE(lm.message_type, 'text') AS last_message_type,
+        COALESCE(lm.created_at, cg.created_at) AS created_at,
+        TRUE AS is_read,
+        cg.name AS full_name,
+        cg.avatar_url AS file_path,
+        (SELECT COUNT(*)::int FROM messages WHERE group_id = cg.id AND sender_id != ${esc(userId)} AND id > COALESCE(cgm2.last_read_at::bigint, 0)) AS unread_count,
+        COALESCE(cgm.is_pinned, FALSE) AS is_pinned,
+        COALESCE(cgm.is_muted, FALSE) AS is_muted,
+        (SELECT COUNT(*)::int FROM chat_group_members WHERE group_id = cg.id) AS member_count
+      FROM chat_groups cg
+      LEFT JOIN chat_group_members cgm ON cgm.group_id = cg.id AND cgm.user_id = ${esc(userId)}
+      LEFT JOIN chat_group_members cgm2 ON cgm2.group_id = cg.id
+      LEFT JOIN LATERAL (
+        SELECT message_text, message_type, created_at
+        FROM messages WHERE group_id = cg.id AND is_deleted = FALSE
+        ORDER BY created_at DESC LIMIT 1
+      ) lm ON TRUE
+      WHERE cgm.user_id IS NOT NULL AND cg.is_archived = FALSE
+      ORDER BY COALESCE(lm.created_at, cg.created_at) DESC
+    `),
+  ])
+
+  const all = [...(directConvos as any[]), ...(groupConvos as any[])]
+  all.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  return NextResponse.json(all)
 }
 
 async function handleUnreadCount(neonSql: any, request: NextRequest) {
@@ -339,15 +416,44 @@ async function handleUnreadCount(neonSql: any, request: NextRequest) {
 }
 
 async function handleMessagesThread(neonSql: any, otherUserId: string) {
+  const params = new URLSearchParams()
   const rows = await neonSql.query(`
     SELECT
       m.*,
-      COALESCE(s.full_name, e.full_name, 'مستخدم ' || m.sender_id) AS full_name
+      COALESCE(s.full_name, u.full_name, 'مستخدم ' || m.sender_id) AS full_name,
+      u.file_path,
+      rm.message_text AS reply_to_text,
+      COALESCE(rs.full_name, ru.full_name, '') AS reply_to_sender
     FROM messages m
     LEFT JOIN users u ON u.id = m.sender_id
     LEFT JOIN students s ON s.id = m.sender_id
     LEFT JOIN employees e ON e.id = m.sender_id
-    WHERE (m.sender_id = ${esc(otherUserId)} OR m.receiver_id = ${esc(otherUserId)})
+    LEFT JOIN messages rm ON rm.id = m.reply_to_id
+    LEFT JOIN users ru ON ru.id = rm.sender_id
+    LEFT JOIN students rs ON rs.id = rm.sender_id
+    WHERE ((m.sender_id = ${esc(otherUserId)} OR m.receiver_id = ${esc(otherUserId)}) AND m.group_id IS NULL)
+      AND m.is_deleted = FALSE
+    ORDER BY m.created_at ASC
+  `) as any[]
+  return NextResponse.json(rows)
+}
+
+async function handleGroupMessages(neonSql: any, groupId: string) {
+  const rows = await neonSql.query(`
+    SELECT
+      m.*,
+      COALESCE(s.full_name, u.full_name, 'مستخدم ' || m.sender_id) AS full_name,
+      u.file_path,
+      rm.message_text AS reply_to_text,
+      COALESCE(rs.full_name, ru.full_name, '') AS reply_to_sender
+    FROM messages m
+    LEFT JOIN users u ON u.id = m.sender_id
+    LEFT JOIN students s ON s.id = m.sender_id
+    LEFT JOIN employees e ON e.id = m.sender_id
+    LEFT JOIN messages rm ON rm.id = m.reply_to_id
+    LEFT JOIN users ru ON ru.id = rm.sender_id
+    LEFT JOIN students rs ON rs.id = rm.sender_id
+    WHERE m.group_id = ${esc(groupId)} AND m.is_deleted = FALSE
     ORDER BY m.created_at ASC
   `) as any[]
   return NextResponse.json(rows)
@@ -356,19 +462,177 @@ async function handleMessagesThread(neonSql: any, otherUserId: string) {
 async function handleSendMessage(neonSql: any, request: NextRequest) {
   const body = await request.json().catch(() => ({}))
   const senderId = body.sender_id || 10
-  const receiverId = body.receiver_id
+  const receiverId = body.receiver_id || null
+  const groupId = body.group_id || null
   const messageText = body.message_text || body.message || ''
+  const messageType = body.message_type || 'text'
+  const replyToId = body.reply_to_id || null
+  const attachmentUrl = body.attachment_url || null
+  const attachmentName = body.attachment_name || null
+  const attachmentType = body.attachment_type || null
+  const attachmentSize = body.attachment_size || null
 
-  if (!receiverId || !messageText) {
-    return NextResponse.json({ success: false, error: 'receiver_id and message are required' }, { status: 400 })
+  if (!messageText && !attachmentUrl) {
+    return NextResponse.json({ success: false, error: 'message is required' }, { status: 400 })
   }
 
   const rows = await neonSql.query(`
-    INSERT INTO messages (sender_id, receiver_id, message_text, is_read, created_at)
-    VALUES (${esc(senderId)}, ${esc(receiverId)}, ${esc(messageText)}, 0, NOW())
+    INSERT INTO messages (sender_id, receiver_id, group_id, message_text, message_type, reply_to_id, attachment_url, attachment_name, attachment_type, attachment_size, is_read, created_at)
+    VALUES (${esc(senderId)}, ${esc(receiverId)}, ${esc(groupId)}, ${esc(messageText)}, ${esc(messageType)}, ${esc(replyToId)}, ${esc(attachmentUrl)}, ${esc(attachmentName)}, ${esc(attachmentType)}, ${esc(attachmentSize)}, 0, NOW())
     RETURNING *
   `) as any[]
   return NextResponse.json({ success: true, data: rows[0] || {} })
+}
+
+async function handleMarkAsRead(neonSql: any, otherUserId: string, request: NextRequest) {
+  const body = await request.json().catch(() => ({}))
+  const readerId = body.reader_id || 10
+  await neonSql.query(`
+    UPDATE messages SET is_read = 1
+    WHERE sender_id = ${esc(otherUserId)} AND receiver_id = ${esc(readerId)} AND is_read = 0
+  `)
+  return NextResponse.json({ success: true })
+}
+
+async function handleMarkGroupAsRead(neonSql: any, groupId: string, request: NextRequest) {
+  const body = await request.json().catch(() => ({}))
+  const userId = body.user_id || 10
+  await neonSql.query(`
+    UPDATE chat_group_members SET last_read_at = NOW() WHERE group_id = ${esc(groupId)} AND user_id = ${esc(userId)}
+  `)
+  return NextResponse.json({ success: true })
+}
+
+async function handleUserSearch(neonSql: any, request: NextRequest) {
+  const params = request.nextUrl.searchParams
+  const q = params.get('q') || ''
+  const userId = params.get('user_id') || '10'
+  if (!q || q.length < 2) return NextResponse.json([])
+
+  const rows = await neonSql.query(`
+    SELECT u.id, COALESCE(s.full_name, e.full_name, u.full_name) AS full_name, u.file_path,
+      CASE WHEN s.id IS NOT NULL THEN 'student' WHEN e.id IS NOT NULL THEN 'employee' ELSE 'admin' END AS role,
+      COALESCE(c.college_name, '') AS college_name,
+      COALESCE(d.department_name, '') AS department_name,
+      COALESCE(jt.title_name, '') AS job_title
+    FROM users u
+    LEFT JOIN students s ON s.id = u.id
+    LEFT JOIN employees e ON e.id = u.id
+    LEFT JOIN colleges c ON c.id = s.college_id
+    LEFT JOIN departments d ON d.id = s.department_id
+    LEFT JOIN job_titles jt ON jt.id = e.job_title_id
+    WHERE u.id != ${esc(userId)}
+      AND (COALESCE(s.full_name, e.full_name, u.full_name) ILIKE ${esc('%' + q + '%')}
+        OR u.email ILIKE ${esc('%' + q + '%')})
+    ORDER BY COALESCE(s.full_name, e.full_name, u.full_name)
+    LIMIT 20
+  `) as any[]
+  return NextResponse.json(rows)
+}
+
+async function handleMessageSearch(neonSql: any, request: NextRequest) {
+  const params = request.nextUrl.searchParams
+  const q = params.get('q') || ''
+  const userId = params.get('user_id') || '10'
+  if (!q || q.length < 2) return NextResponse.json([])
+
+  const rows = await neonSql.query(`
+    SELECT m.*, COALESCE(s.full_name, u.full_name, '') AS full_name, u.file_path
+    FROM messages m
+    LEFT JOIN users u ON u.id = m.sender_id
+    LEFT JOIN students s ON s.id = m.sender_id
+    WHERE (m.sender_id = ${esc(userId)} OR m.receiver_id = ${esc(userId)})
+      AND m.message_text ILIKE ${esc('%' + q + '%')}
+      AND m.is_deleted = FALSE
+    ORDER BY m.created_at DESC
+    LIMIT 50
+  `) as any[]
+  return NextResponse.json(rows)
+}
+
+async function handleGroups(neonSql: any, request: NextRequest, method: string) {
+  const params = request.nextUrl.searchParams
+  const userId = params.get('user_id') || '10'
+
+  if (method === 'POST') {
+    const body = await request.json().catch(() => ({}))
+    const name = body.name
+    const description = body.description || ''
+    const createdBy = body.created_by || userId
+    const memberIds: number[] = body.member_ids || []
+
+    if (!name) return NextResponse.json({ success: false, error: 'name required' }, { status: 400 })
+
+    const groupRows = await neonSql.query(`
+      INSERT INTO chat_groups (name, description, created_by, group_type, created_at, updated_at)
+      VALUES (${esc(name)}, ${esc(description)}, ${esc(createdBy)}, 'general', NOW(), NOW())
+      RETURNING *
+    `) as any[]
+    const group = groupRows[0]
+
+    await neonSql.query(`
+      INSERT INTO chat_group_members (group_id, user_id, role, joined_at)
+      VALUES (${esc(group.id)}, ${esc(createdBy)}, 'admin', NOW())
+    `)
+
+    for (const memberId of memberIds) {
+      if (memberId !== createdBy) {
+        await neonSql.query(`
+          INSERT INTO chat_group_members (group_id, user_id, role, joined_at)
+          VALUES (${esc(group.id)}, ${esc(memberId)}, 'member', NOW())
+        `)
+      }
+    }
+
+    return NextResponse.json({ success: true, data: group })
+  }
+
+  const rows = await neonSql.query(`
+    SELECT cg.*,
+      (SELECT COUNT(*)::int FROM chat_group_members WHERE group_id = cg.id) AS member_count
+    FROM chat_groups cg
+    JOIN chat_group_members cgm ON cgm.group_id = cg.id AND cgm.user_id = ${esc(userId)}
+    WHERE cg.is_archived = FALSE
+    ORDER BY cg.name
+  `) as any[]
+  return NextResponse.json(rows)
+}
+
+async function handleGroupMembers(neonSql: any, groupId: string) {
+  const rows = await neonSql.query(`
+    SELECT cgm.*,
+      COALESCE(s.full_name, e.full_name, u.full_name) AS full_name,
+      u.file_path
+    FROM chat_group_members cgm
+    LEFT JOIN users u ON u.id = cgm.user_id
+    LEFT JOIN students s ON s.id = cgm.user_id
+    LEFT JOIN employees e ON e.id = cgm.user_id
+    WHERE cgm.group_id = ${esc(groupId)}
+    ORDER BY cgm.role, cgm.joined_at
+  `) as any[]
+  return NextResponse.json(rows)
+}
+
+async function handlePresence(neonSql: any, request: NextRequest, method: string) {
+  if (method === 'PUT') {
+    const body = await request.json().catch(() => ({}))
+    const userId = body.user_id || 10
+    const isOnline = body.is_online ?? true
+    await neonSql.query(`
+      INSERT INTO user_presence (user_id, is_online, last_seen, updated_at)
+      VALUES (${esc(userId)}, ${esc(isOnline)}, NOW(), NOW())
+      ON CONFLICT (user_id) DO UPDATE SET is_online = ${esc(isOnline)}, last_seen = NOW(), updated_at = NOW()
+    `)
+    return NextResponse.json({ success: true })
+  }
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+}
+
+async function handlePresenceGet(neonSql: any, userId: string) {
+  const rows = await neonSql.query(`
+    SELECT * FROM user_presence WHERE user_id = ${esc(userId)}
+  `) as any[]
+  return NextResponse.json(rows[0] || { user_id: userId, is_online: false, last_seen: null })
 }
 
 async function handleSpecialEndpoint(

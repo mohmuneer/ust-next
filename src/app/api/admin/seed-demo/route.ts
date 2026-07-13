@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import type { NeonQueryFunction } from '@neondatabase/serverless'
-
-let cachedNeon: NeonQueryFunction<false, false> | null = null
-
-async function getNeon() {
-  if (cachedNeon) return cachedNeon
-  const url = process.env.DATABASE_URL
-  if (!url) throw new Error('DATABASE_URL is not set')
-  const { neon } = await import('@neondatabase/serverless')
-  cachedNeon = neon(url)
-  return cachedNeon
-}
 
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
+  let client: any = null
   try {
     const body = await request.json().catch(() => ({}))
     const fileName = body.file || 'seed-enhancement.sql'
@@ -51,7 +40,9 @@ export async function POST(request: NextRequest) {
     }
     if (current.trim().length > 0) statements.push(current.trim())
 
-    const neonSql = await getNeon()
+    const { Client } = await import('pg')
+    client = new Client({ connectionString: process.env.DATABASE_URL })
+    await client.connect()
 
     let successCount = 0
     let skipCount = 0
@@ -60,10 +51,10 @@ export async function POST(request: NextRequest) {
 
     for (const stmt of statements) {
       try {
-        await neonSql.query(neonSql.unsafe(stmt))
+        await client.query(stmt)
         successCount++
-      } catch (e: unknown) {
-        const msg = String(e)
+      } catch (e: any) {
+        const msg = String(e?.message || e)
         if (msg.includes('duplicate key') || msg.includes('already exists') || msg.includes('violates unique constraint')) {
           skipCount++
         } else {
@@ -89,5 +80,9 @@ export async function POST(request: NextRequest) {
       { ok: false, error: String(error) },
       { status: 500 }
     )
+  } finally {
+    if (client) {
+      await client.end().catch(() => {})
+    }
   }
 }

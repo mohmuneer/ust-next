@@ -169,7 +169,8 @@ INSERT INTO users (full_name, email, password, status, view_personal_tasks, view
 ('نورة عبدالله', 'noura@ust.edu.ye', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, 1),
 ('علي صالح', 'ali@ust.edu.ye', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, 1),
 ('مريم حسين', 'maryam@ust.edu.ye', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, 1),
-('يوسف إبراهيم', 'yousuf@ust.edu.ye', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, 1);
+('يوسف إبراهيم', 'yousuf@ust.edu.ye', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, 1),
+('محمد منير', 'mohamed.mounir@ust.edu.ye', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, 1);
 
 -- password for all: password
 
@@ -185,7 +186,8 @@ INSERT INTO user_permision (user_id, role_id) VALUES
 (6, 6), -- نورة -> finance
 (7, 7), -- علي -> it_support
 (8, 8), -- مريم -> technician
-(9, 9); -- يوسف -> user
+(9, 9), -- يوسف -> user
+(10, 2); -- محمد منير -> super_admin (صلاحيات كاملة)
 
 -- ============================================================
 -- 14. system_settings
@@ -517,18 +519,113 @@ INSERT INTO permissions (perm_key, perm_name) VALUES
 -- 40. role_page_permissions FK->roles
 -- ============================================================
 INSERT INTO role_page_permissions (role_id, page_key, can_view, can_add, can_edit, can_delete) VALUES
+-- عام
 (2, 'dashboard', 't', 't', 't', 't'),
+(2, 'messages', 't', 't', 't', 't'),
+(2, 'chatbot', 't', 't', 't', 't'),
+(2, 'reports', 't', 't', 't', 't'),
+(2, 'contact-messages', 't', 't', 't', 't'),
+-- الجامعة
+(2, 'university-config', 't', 't', 't', 't'),
+(2, 'university-events', 't', 't', 't', 't'),
+(2, 'university-news', 't', 't', 't', 't'),
+-- هيكلة المشاكل
 (2, 'branches', 't', 't', 't', 't'),
 (2, 'colleges', 't', 't', 't', 't'),
-(2, 'students', 't', 't', 't', 't'),
-(2, 'exams', 't', 't', 't', 't'),
+(2, 'departments', 't', 't', 't', 't'),
+(2, 'labs', 't', 't', 't', 't'),
+(2, 'study-levels', 't', 't', 't', 't'),
+(2, 'study-groups', 't', 't', 't', 't'),
+(2, 'study-subjects', 't', 't', 't', 't'),
+(2, 'academic-semesters', 't', 't', 't', 't'),
+(2, 'study-schedules', 't', 't', 't', 't'),
+(2, 'master-timetable', 't', 't', 't', 't'),
+(2, 'study-hours', 't', 't', 't', 't'),
+(2, 'programs', 't', 't', 't', 't'),
+(2, 'study-plans', 't', 't', 't', 't'),
+(2, 'subject-relations', 't', 't', 't', 't'),
+(2, 'buildings', 't', 't', 't', 't'),
+(2, 'rooms', 't', 't', 't', 't'),
+(2, 'lectures', 't', 't', 't', 't'),
+(2, 'lectures-qr', 't', 't', 't', 't'),
+(2, 'lectures-attendance', 't', 't', 't', 't'),
+(2, 'faculty-preferences', 't', 't', 't', 't'),
+(2, 'course-syllabi', 't', 't', 't', 't'),
+(2, 'time-slots', 't', 't', 't', 't'),
+-- المشاكل
+(2, 'problem-groups', 't', 't', 't', 't'),
+(2, 'default-problems', 't', 't', 't', 't'),
+-- البلاغات
 (2, 'requests', 't', 't', 't', 't'),
+(2, 'requests-reports', 't', 't', 't', 't'),
+(2, 'requests-oversight', 't', 't', 't', 't'),
+-- المهام
 (2, 'tasks', 't', 't', 't', 't'),
-(2, 'users', 't', 't', 't', 't'),
-(2, 'roles', 't', 't', 't', 't'),
+(2, 'tasks-reports', 't', 't', 't', 't'),
+-- الطلاب
+(2, 'students', 't', 't', 't', 't'),
+(2, 'guardians', 't', 't', 't', 't'),
+(2, 'student-reports', 't', 't', 't', 't'),
+(2, 'student-enrollments', 't', 't', 't', 't'),
+(2, 'student-fees', 't', 't', 't', 't'),
+(2, 'student-semester-gpa', 't', 't', 't', 't'),
+(2, 'academic-records', 't', 't', 't', 't'),
+(2, 'academic-warnings', 't', 't', 't', 't'),
+(2, 'academic-calendar', 't', 't', 't', 't'),
+(2, 'scholarships', 't', 't', 't', 't'),
+(2, 'attendance-sessions', 't', 't', 't', 't'),
+(2, 'attendance-records', 't', 't', 't', 't'),
+(2, 'attendance-logs', 't', 't', 't', 't'),
+(2, 'attendance-reports', 't', 't', 't', 't'),
+-- الامتحانات
+(2, 'exams', 't', 't', 't', 't'),
+(2, 'exam-schedules', 't', 't', 't', 't'),
+(2, 'exam-grades', 't', 't', 't', 't'),
+(2, 'exam-seating', 't', 't', 't', 't'),
+-- المكتبة
+(2, 'library-books', 't', 't', 't', 't'),
+(2, 'library-borrowings', 't', 't', 't', 't'),
+(2, 'library-fines', 't', 't', 't', 't'),
+(2, 'library-reservations', 't', 't', 't', 't'),
+-- الرسوم المالية
+(2, 'fee-types', 't', 't', 't', 't'),
+(2, 'fee-payments', 't', 't', 't', 't'),
+-- الموظفين
+(2, 'admin-structures', 't', 't', 't', 't'),
+(2, 'job-titles', 't', 't', 't', 't'),
 (2, 'employees', 't', 't', 't', 't'),
-(2, 'reports', 't', 't', 't', 't'),
+(2, 'employee-certificates', 't', 't', 't', 't'),
+(2, 'employee-assignments', 't', 't', 't', 't'),
+(2, 'external-employees', 't', 't', 't', 't'),
+(2, 'job-openings', 't', 't', 't', 't'),
+-- المستندات
+(2, 'documents', 't', 't', 't', 't'),
+(2, 'document-categories', 't', 't', 't', 't'),
+(2, 'contractor-documents', 't', 't', 't', 't'),
+-- المقاولون
+(2, 'contractors', 't', 't', 't', 't'),
+-- المستخدمين
+(2, 'users', 't', 't', 't', 't'),
+(2, 'users-reports', 't', 't', 't', 't'),
+(2, 'users-profile', 't', 't', 't', 't'),
+-- الصلاحيات
+(2, 'roles', 't', 't', 't', 't'),
+(2, 'permissions', 't', 't', 't', 't'),
+(2, 'permissions-users', 't', 't', 't', 't'),
+(2, 'assign-permissions', 't', 't', 't', 't'),
+-- الإشعارات
+(2, 'notifications', 't', 't', 't', 't'),
+(2, 'notification-templates', 't', 't', 't', 't'),
+-- تهيئة النظام
+(2, 'system-settings', 't', 't', 't', 't'),
+(2, 'system-visuals', 't', 't', 't', 't'),
+(2, 'system-logs', 't', 't', 't', 't'),
+(2, 'backup', 't', 't', 't', 't'),
+(2, 'db-schema', 't', 't', 't', 't'),
 (2, 'settings', 't', 't', 't', 't'),
+(2, 'logs', 't', 't', 't', 't'),
+(2, 'setup-workflow', 't', 't', 't', 't'),
+-- الأدوار الأخرى
 (3, 'dashboard', 't', 'f', 'f', 'f'),
 (3, 'students', 't', 't', 't', 't'),
 (3, 'exams', 't', 't', 't', 'f'),

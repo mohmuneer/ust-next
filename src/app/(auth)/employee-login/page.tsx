@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { Eye, EyeOff, User, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEmployeeAuthStore } from '@/store/useEmployeeAuthStore'
-import { setAuthCookie } from '@/lib/auth-cookies'
 
 const loginSchema = z.object({
   employee_code: z.string().min(1, 'الرجاء إدخال الكود الوظيفي'),
@@ -50,8 +49,7 @@ export default function EmployeeLoginPage() {
         return
       }
 
-      setAuth(result.employee, result.token)
-      setAuthCookie('employee_token', result.token)
+      setAuth(result.employee, '')
       router.push('/dashboard')
     } catch {
       setError('خطأ في الاتصال بالخادم')

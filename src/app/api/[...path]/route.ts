@@ -1,6 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jwtVerify } from 'jose'
 
 const API_BASE = process.env.API_BASE_URL
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'ust-next-dev-secret-only-for-local-development'
+)
+
+type AuthUser = { id: number; type: 'student' | 'employee' | 'user' }
+
+async function authenticateRequest(request: NextRequest): Promise<AuthUser | null> {
+  const authHeader = request.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET)
+      return { id: payload.id as number, type: payload.type as AuthUser['type'] }
+    } catch { /* invalid token */ }
+  }
+
+  const cookieMap: Record<string, AuthUser['type']> = {
+    student_token: 'student',
+    employee_token: 'employee',
+    auth_token: 'user',
+  }
+
+  for (const [cookieName, userType] of Object.entries(cookieMap)) {
+    const token = request.cookies.get(cookieName)?.value
+    if (!token) continue
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET)
+      if (payload.type === userType) {
+        return { id: payload.id as number, type: userType }
+      }
+    } catch { /* invalid token */ }
+  }
+
+  return null
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cachedNeon: any = null
@@ -130,6 +167,20 @@ export async function DELETE(request: NextRequest) {
 async function handleRequest(request: NextRequest, method: string) {
   if (API_BASE) {
     return proxyToBackend(request, method)
+  }
+
+  const fullPath = request.nextUrl.pathname.replace('/api/', '')
+  const parts = fullPath.split('/').filter(Boolean)
+  const basePath = parts[0] || ''
+
+  const skipAuth = basePath === 'auth' || basePath === 'system-settings' || fullPath.startsWith('system-settings')
+
+  if (!skipAuth) {
+    const user = await authenticateRequest(request)
+    if (!user) {
+      return NextResponse.json({ error: 'غير مصرح بالدخول', code: 'UNAUTHORIZED' }, { status: 401 })
+    }
+    ;(request as any)._authUser = user
   }
 
   try {

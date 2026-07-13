@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'ust-next-secret-key-2026'
+import { signToken } from '@/lib/jwt'
 
 export async function POST(request: Request) {
   try {
@@ -18,17 +16,14 @@ export async function POST(request: Request) {
     }
 
     const result = await query(
-      `SELECT s.id, s.student_number, s.full_name, s.email, s.phone, s.password, s.status,
-              s.college_id, s.department_id, s.study_level_id, s.study_group_id,
-              c.college_name,
-              d.department_name,
-              sl.level_name,
-              sg.group_name
+      `SELECT s.*, c.college_name, d.department_name, sl.level_name, sg.group_name,
+              sem.semester_name
        FROM students s
        LEFT JOIN colleges c ON c.id = s.college_id
        LEFT JOIN departments d ON d.id = s.department_id
        LEFT JOIN study_levels sl ON sl.id = s.study_level_id
        LEFT JOIN study_groups sg ON sg.id = s.study_group_id
+       LEFT JOIN academic_semesters sem ON sem.id = s.academic_semester_id
        WHERE s.student_number = $1 LIMIT 1`,
       [student_number]
     )
@@ -64,26 +59,16 @@ export async function POST(request: Request) {
       )
     }
 
-    const token = jwt.sign(
+    const token = signToken(
       { id: student.id, student_number: student.student_number, type: 'student' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
+      '7d'
     )
+
+    const { password: _, ...studentData } = student
 
     const res = NextResponse.json({
       success: true,
-      student: {
-        id: student.id,
-        student_number: student.student_number,
-        full_name: student.full_name,
-        email: student.email,
-        phone: student.phone,
-        college_name: student.college_name,
-        department_name: student.department_name,
-        study_level_id: student.study_level_id,
-        study_group_id: student.study_group_id,
-      },
-      token,
+      student: studentData,
     })
 
     res.cookies.set('student_token', token, {

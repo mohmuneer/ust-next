@@ -9,7 +9,7 @@ import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useEmployeeAuthStore } from '@/store/useEmployeeAuthStore'
-import { setAuthCookie } from '@/lib/auth-cookies'
+
 import { cn } from '@/lib/utils'
 
 const userSchema = z.object({
@@ -59,8 +59,7 @@ export default function LoginPage() {
         setError(result.message || 'البيانات المدخلة غير صحيحة')
         return
       }
-      setUserAuth(result.user, result.token)
-      setAuthCookie('auth_token', result.token)
+      setUserAuth(result.user, '')
       router.push('/dashboard')
     } catch {
       setError('خطأ في الاتصال بالخادم')
@@ -83,8 +82,7 @@ export default function LoginPage() {
         setError(result.message || 'بيانات الدخول غير صحيحة')
         return
       }
-      setEmployeeAuth(result.employee, result.token)
-      setAuthCookie('employee_token', result.token)
+      setEmployeeAuth(result.employee, '')
       router.push('/dashboard')
     } catch {
       setError('خطأ في الاتصال بالخادم')

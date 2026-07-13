@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'ust-next-secret-key-2026'
+import { signToken } from '@/lib/jwt'
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +17,7 @@ export async function POST(request: Request) {
 
     const result = await query(
       `SELECT e.id, e.employee_code, e.full_name, e.email, e.phone, e.password, e.status,
-              e.academic_degree, e.specialization, e.file_path,
+              e.academic_degree, e.specialization,
               jt.title AS job_title_name,
               ast.name AS admin_structure_name
        FROM employees e
@@ -60,10 +58,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const token = jwt.sign(
+    const token = signToken(
       { id: employee.id, employee_code: employee.employee_code, type: 'employee' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
+      '7d'
     )
 
     const res = NextResponse.json({
@@ -78,10 +75,7 @@ export async function POST(request: Request) {
         specialization: employee.specialization,
         job_title_name: employee.job_title_name,
         admin_structure_name: employee.admin_structure_name,
-        status: employee.status,
-        file_path: employee.file_path,
       },
-      token,
     })
 
     res.cookies.set('employee_token', token, {

@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'ust-next-secret-key-2026'
+import { signToken } from '@/lib/jwt'
 
 export async function POST(request: Request) {
   try {
@@ -64,10 +62,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const token = jwt.sign(
+    const token = signToken(
       { id: user.id, email: user.email, type: 'user' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
+      '7d'
     )
 
     const res = NextResponse.json({
@@ -79,7 +76,6 @@ export async function POST(request: Request) {
         role_name: user.role_name || null,
         role_code: user.role_code || null,
       },
-      token,
     })
 
     res.cookies.set('auth_token', token, {
@@ -93,9 +89,8 @@ export async function POST(request: Request) {
     return res
   } catch (error) {
     console.error('Login error:', error)
-    const detail = error instanceof Error ? error.message : 'unknown'
     return NextResponse.json(
-      { success: false, message: 'خطأ في الاتصال بالخادم', detail },
+      { success: false, message: 'خطأ في الاتصال بالخادم' },
       { status: 500 }
     )
   }

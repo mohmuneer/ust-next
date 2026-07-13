@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { Eye, EyeOff, User, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
-import { setAuthCookie } from '@/lib/auth-cookies'
 
 const loginSchema = z.object({
   student_number: z.string().min(1, 'الرجاء إدخال الرقم الجامعي'),
@@ -50,8 +49,7 @@ export default function StudentLoginPage() {
         return
       }
 
-      setAuth(result.student, result.token)
-      setAuthCookie('student_token', result.token)
+      setAuth(result.student, '')
       router.push('/student/dashboard')
     } catch {
       setError('خطأ في الاتصال بالخادم')

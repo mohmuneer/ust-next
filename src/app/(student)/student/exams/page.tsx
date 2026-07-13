@@ -4,14 +4,20 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileQuestion, Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, Play, ChevronLeft } from 'lucide-react'
 import { studentApi } from '@/services/student-api'
+import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 
 export default function ExamsPage() {
   const router = useRouter()
+  const { student } = useStudentAuthStore()
   const [exams, setExams] = useState<any[]>([])
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => { setHydrated(true) }, [])
 
   useEffect(() => {
+    if (!hydrated) return
     Promise.all([
       studentApi.get<any[]>('/exams'),
       studentApi.get<any[]>('/exam-sessions'),
@@ -20,7 +26,7 @@ export default function ExamsPage() {
       setSessions(s || [])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [])
+  }, [hydrated])
 
   const getExamStatus = (exam: any) => {
     const now = new Date()

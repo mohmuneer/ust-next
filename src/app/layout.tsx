@@ -29,6 +29,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="UST" />
         <link rel="apple-touch-icon" href="/ust-logo.png" />
+        <link rel="manifest" href="/manifest-student.json" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var c=function(){document.querySelectorAll('[fdprocessedid]').forEach(function(e){e.removeAttribute('fdprocessedid')})};if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',c)}else{c()}new MutationObserver(c).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['fdprocessedid']})}catch(e){}})();`,

@@ -46,6 +46,7 @@
   "share_target": {
     "action": "/student/dashboard",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "name",
       "text": "description",

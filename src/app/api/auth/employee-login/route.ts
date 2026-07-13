@@ -76,6 +76,7 @@ export async function POST(request: Request) {
         job_title_name: employee.job_title_name,
         admin_structure_name: employee.admin_structure_name,
       },
+      token,
     })
 
     res.cookies.set('employee_token', token, {

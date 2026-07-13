@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     const res = NextResponse.json({
       success: true,
       student: studentData,
+      token,
     })
 
     res.cookies.set('student_token', token, {

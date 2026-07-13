@@ -1,8 +1,6 @@
 'use client'
 
 import BottomNav from '@/components/mobile/bottom-nav'
-import { SWRegistration } from '@/components/sw-registration'
-import { PWAInstallBanner } from '@/components/pwa-install-banner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { useAppStore } from '@/store/useAppStore'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
@@ -50,8 +48,6 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
 
   return (
     <ThemeProvider>
-      <SWRegistration manifestPath="/manifest-student.json" />
-      <PWAInstallBanner variant="student" />
       <MobileLayoutInner>{children}</MobileLayoutInner>
     </ThemeProvider>
   )

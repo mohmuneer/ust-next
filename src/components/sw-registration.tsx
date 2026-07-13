@@ -11,10 +11,15 @@ export function SWRegistration({ manifestPath }: SWRegistrationProps) {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
 
-      const link = document.createElement('link')
-      link.rel = 'manifest'
-      link.href = manifestPath
-      document.head.appendChild(link)
+      const existing = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null
+      if (existing) {
+        existing.href = manifestPath
+      } else {
+        const link = document.createElement('link')
+        link.rel = 'manifest'
+        link.href = manifestPath
+        document.head.appendChild(link)
+      }
     }
   }, [manifestPath])
 

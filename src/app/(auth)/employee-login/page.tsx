@@ -49,7 +49,7 @@ export default function EmployeeLoginPage() {
         return
       }
 
-      setAuth(result.employee, '')
+      setAuth(result.employee, result.token || '')
       router.push('/dashboard')
     } catch {
       setError('خطأ في الاتصال بالخادم')

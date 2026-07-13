@@ -19,10 +19,10 @@ export default function GradesPage() {
   useEffect(() => {
     if (!hydrated || !student) return
     Promise.all([
-      studentApi.get<any>(`/student-schedule?student_id=${student.id}`),
+      studentApi.get<any[]>(`/academic-records?student_id=${student.id}`),
       studentApi.get<any[]>(`/student-semester-gpa?student_id=${student.id}`).catch(() => []),
-    ]).then(([scheduleData, gpaData]) => {
-      setRecords(scheduleData?.subjects || [])
+    ]).then(([recordsData, gpaData]) => {
+      setRecords(recordsData || [])
       setSemesterGpa(gpaData || [])
       setLoading(false)
     }).catch(() => setLoading(false))

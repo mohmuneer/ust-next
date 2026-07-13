@@ -30,22 +30,18 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
   if (isLoginPage) return <>{children}</>
 
-  if (showSplash) {
-    return (
-      <ThemeProvider>
-        <SplashScreen variant="student" onComplete={() => setShowSplash(false)} />
-      </ThemeProvider>
-    )
-  }
-
   return (
     <ThemeProvider>
       <SWRegistration manifestPath="/manifest-student.json" />
       <PWAInstallBanner variant="student" />
       <PWAUpdateBanner />
-      <NotificationBadgeProvider>
-        <StudentLayoutInner>{children}</StudentLayoutInner>
-      </NotificationBadgeProvider>
+      {showSplash ? (
+        <SplashScreen variant="student" onComplete={() => setShowSplash(false)} />
+      ) : (
+        <NotificationBadgeProvider>
+          <StudentLayoutInner>{children}</StudentLayoutInner>
+        </NotificationBadgeProvider>
+      )}
     </ThemeProvider>
   )
 }

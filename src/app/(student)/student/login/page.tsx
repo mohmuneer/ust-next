@@ -49,7 +49,7 @@ export default function StudentLoginPage() {
         return
       }
 
-      setAuth(result.student, '')
+      setAuth(result.student, result.token || '')
       router.push('/student/dashboard')
     } catch {
       setError('خطأ في الاتصال بالخادم')

@@ -3,23 +3,29 @@
 import { useState, useEffect } from 'react'
 import { UserCheck, UserX, Clock, Calendar, Percent, AlertCircle } from 'lucide-react'
 import { studentApi } from '@/services/student-api'
+import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 import { PageErrorWrapper } from '@/components/ui/page-error-wrapper'
 
 export default function AttendancePage() {
+  const { student } = useStudentAuthStore()
   const [sessions, setSessions] = useState<any[]>([])
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => { setHydrated(true) }, [])
 
   useEffect(() => {
+    if (!hydrated || !student) return
     Promise.all([
-      studentApi.get<any[]>('/attendance-sessions'),
-      studentApi.get<any[]>('/attendance-records'),
-    ]).then(([s, r]) => {
-      setSessions(s || [])
+      studentApi.get<any[]>(`/attendance-records?student_id=${student.id}`),
+      studentApi.get<any[]>(`/attendance-sessions`),
+    ]).then(([r, s]) => {
       setRecords(r || [])
+      setSessions(s || [])
       setLoading(false)
     }).catch(() => setLoading(false))
-  }, [])
+  }, [hydrated, student])
 
   const total = records.length
   const present = records.filter((r) => r.status === 'present').length

@@ -4,8 +4,7 @@ import { StudentSidebar } from '@/components/layout/student-sidebar'
 import { ThemeProvider } from '@/components/theme-provider'
 import { cn, getImageUrl } from '@/lib/utils'
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
-import { useStudentAuthStore } from '@/store/useStudentAuthStore'
+import { usePathname } from 'next/navigation'
 import { useAppStore } from '@/store/useAppStore'
 import { Moon, Sun } from 'lucide-react'
 import { systemService } from '@/services/system.service'
@@ -24,9 +23,7 @@ const studentNavItems = [
 ]
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated } = useStudentAuthStore()
   const [hydrated, setHydrated] = useState(false)
   const [showSplash, setShowSplash] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -36,11 +33,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const isLoginPage = pathname?.includes('/login')
 
   useEffect(() => { setHydrated(true) }, [])
-  useEffect(() => {
-    if (hydrated && !isAuthenticated && !isLoginPage) {
-      router.push('/student/login')
-    }
-  }, [hydrated, isAuthenticated, isLoginPage, router])
 
   if (isLoginPage) return <>{children}</>
 

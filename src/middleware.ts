@@ -15,8 +15,13 @@ export function middleware(request: NextRequest) {
   const hasStudentToken = request.cookies.has('student_token')
 
   if (!hasAuthToken && !hasEmployeeToken && !hasStudentToken) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
+    let loginPath = '/login'
+    if (pathname.startsWith('/student')) {
+      loginPath = '/student/login'
+    } else if (pathname.startsWith('/dashboard') || pathname.startsWith('/employees') || pathname.startsWith('/students') || pathname.startsWith('/lectures') || pathname.startsWith('/messages') || pathname.startsWith('/reports') || pathname.startsWith('/settings') || pathname.startsWith('/colleges') || pathname.startsWith('/departments') || pathname.startsWith('/courses') || pathname.startsWith('/grades') || pathname.startsWith('/attendance') || pathname.startsWith('/schedule') || pathname.startsWith('/semesters') || pathname.startsWith('/academic')) {
+      loginPath = '/employee-login'
+    }
+    const loginUrl = new URL(loginPath, request.url)
     return NextResponse.redirect(loginUrl)
   }
 

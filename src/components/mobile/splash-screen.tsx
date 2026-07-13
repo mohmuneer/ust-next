@@ -160,7 +160,7 @@ export default function SplashScreen({
       >
         <div className="splash-logo">
           <img
-            src="/images/logo.png"
+            src="/ust-logo.png"
             alt="جامعة العلوم والتكنولوجيا"
             width={80}
             height={80}

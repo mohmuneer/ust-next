@@ -11,6 +11,7 @@ import {
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 import { studentDashboardService, type DashboardData } from '@/services/student-dashboard.service'
 import { ErrorBoundary, PageErrorFallback } from '@/components/ui/error-boundary'
+import { getImageUrl } from '@/lib/utils'
 import { DashboardSkeleton } from '@/components/ui/skeleton'
 
 const DAYS_MAP: Record<string, string> = {
@@ -59,7 +60,7 @@ export default function StudentDashboardPage() {
 
   const s = data?.student || student
   const stats = data?.statistics
-  const photo = s?.photo ? (s.photo.startsWith('/') ? s.photo : `/uploads/${s.photo}`) : null
+  const photo = s?.photo ? getImageUrl(s.photo) : null
 
   return (
     <ErrorBoundary fallback={<DashboardSkeleton />}>

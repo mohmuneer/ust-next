@@ -14,7 +14,7 @@ interface AvatarUploadProps {
 export function AvatarUpload({ currentImage, onImageChange, size = 'lg', label }: AvatarUploadProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
-  const [preview, setPreview] = useState<string | null>(currentImage || null)
+  const [preview, setPreview] = useState<string | null>(currentImage ? getImageUrl(currentImage) : null)
   const [error, setError] = useState('')
 
   const sizeClasses = size === 'sm' ? 'w-16 h-16' : size === 'md' ? 'w-24 h-24' : 'w-32 h-32'
@@ -52,7 +52,7 @@ export function AvatarUpload({ currentImage, onImageChange, size = 'lg', label }
       }
     } catch {
       setError('فشل رفع الصورة')
-      setPreview(currentImage || null)
+      setPreview(currentImage ? getImageUrl(currentImage) : null)
     } finally {
       setUploading(false)
     }

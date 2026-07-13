@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Megaphone, Bell, Calendar, ChevronDown, ChevronUp, Search } from 'lucide-react'
 import { studentApi } from '@/services/student-api'
+import { getImageUrl } from '@/lib/utils'
 
 const CATEGORIES: Record<string, { label: string; color: string; icon: any }> = {
   announcement: { label: 'إعلان', color: 'bg-blue-100 text-blue-700', icon: Megaphone },
@@ -62,7 +63,7 @@ export default function AnnouncementsPage() {
             return (
               <div key={a.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {a.image && (
-                  <img src={a.image} alt={a.title} className="w-full h-48 object-cover" />
+                  <img src={getImageUrl(a.image)} alt={a.title} className="w-full h-48 object-cover" />
                 )}
                 <button onClick={() => toggle(a.id)} className="w-full p-4 text-right">
                   <div className="flex items-start gap-4">

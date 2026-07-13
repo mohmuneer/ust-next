@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Library, BookOpen, Search, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { studentApi } from '@/services/student-api'
+import { getImageUrl } from '@/lib/utils'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 
 type Tab = 'books' | 'borrowings'
@@ -82,7 +83,7 @@ export default function LibraryPage() {
                 <div key={book.id}
                   className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
                   {book.cover_image ? (
-                    <img src={book.cover_image} alt={book.title} className="w-full h-40 object-cover" />
+                    <img src={getImageUrl(book.cover_image)} alt={book.title} className="w-full h-40 object-cover" />
                   ) : (
                     <div className="w-full h-40 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
                       <BookOpen className="h-10 w-10 text-blue-300" />

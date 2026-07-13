@@ -329,8 +329,11 @@ async function handleConversations(neonSql: any, request: NextRequest) {
   const params = request.nextUrl.searchParams
   const userId = params.get('user_id') || '10'
 
-  const [directConvos, groupConvos] = await Promise.all([
-    neonSql.query(`
+  let directConvos: any[] = []
+  let groupConvos: any[] = []
+
+  try {
+    directConvos = await neonSql.query(`
       WITH latest_messages AS (
         SELECT
           CASE WHEN sender_id = ${esc(userId)} THEN receiver_id ELSE sender_id END AS other_user_id,
@@ -345,62 +348,57 @@ async function handleConversations(neonSql: any, request: NextRequest) {
         FROM messages
         WHERE (sender_id = ${esc(userId)} OR receiver_id = ${esc(userId)})
           AND group_id IS NULL AND is_deleted = FALSE
+      ),
+      other_info AS (
+        SELECT
+          lm.*,
+          COALESCE(s.full_name, e.full_name, u.full_name, 'مستخدم ' || lm.other_user_id) AS full_name,
+          COALESCE(s.photo, u.file_path) AS file_path,
+          CASE WHEN s.id IS NOT NULL THEN 'student' WHEN e.id IS NOT NULL THEN 'employee' ELSE 'admin' END AS role
+        FROM latest_messages lm
+        LEFT JOIN students s ON s.id = lm.other_user_id
+        LEFT JOIN employees e ON e.id = lm.other_user_id
+        LEFT JOIN users u ON u.id = lm.other_user_id
+        WHERE lm.rn = 1
       )
       SELECT
-        lm.other_user_id AS id,
+        oi.other_user_id AS id,
         'direct' AS type,
-        lm.last_message,
-        lm.last_message_type,
-        lm.created_at,
-        lm.is_read,
-        COALESCE(s.full_name, u.full_name, 'مستخدم ' || lm.other_user_id) AS full_name,
-        u.file_path,
-        (SELECT COUNT(*)::int FROM messages WHERE sender_id = lm.other_user_id AND receiver_id = ${esc(userId)} AND is_read = 0 AND is_deleted = FALSE) AS unread_count,
-        COALESCE(
-          (SELECT is_pinned FROM chat_group_members WHERE user_id = ${esc(userId)} AND group_id = lm.other_user_id),
-          FALSE
-        ) AS is_pinned,
-        COALESCE(s2.college_name, '') AS college_name,
-        COALESCE(d2.department_name, '') AS department_name,
-        COALESCE(jt.title_name, '') AS job_title
-      FROM latest_messages lm
-      LEFT JOIN users u ON u.id = lm.other_user_id
-      LEFT JOIN students s ON s.id = lm.other_user_id
-      LEFT JOIN employees e ON e.id = lm.other_user_id
-      LEFT JOIN colleges s2 ON s2.id = s.college_id
-      LEFT JOIN departments d2 ON d2.id = s.department_id
-      LEFT JOIN job_titles jt ON jt.id = e.job_title_id
-      WHERE lm.rn = 1
-      ORDER BY lm.created_at DESC
-    `),
-    neonSql.query(`
+        oi.last_message,
+        oi.last_message_type,
+        oi.created_at,
+        oi.is_read,
+        oi.full_name,
+        oi.file_path,
+        oi.role,
+        (SELECT COUNT(*)::int FROM messages WHERE sender_id = oi.other_user_id AND receiver_id = ${esc(userId)} AND is_read = 0 AND is_deleted = FALSE) AS unread_count
+      FROM other_info oi
+      ORDER BY oi.created_at DESC
+    `) as any[]
+  } catch { directConvos = [] }
+
+  try {
+    groupConvos = await neonSql.query(`
       SELECT
         cg.id,
         'group' AS type,
-        COALESCE(lm.message_text, '') AS last_message,
-        COALESCE(lm.message_type, 'text') AS last_message_type,
-        COALESCE(lm.created_at, cg.created_at) AS created_at,
+        '' AS last_message,
+        'text' AS last_message_type,
+        cg.created_at AS created_at,
         TRUE AS is_read,
         cg.name AS full_name,
         cg.avatar_url AS file_path,
-        (SELECT COUNT(*)::int FROM messages WHERE group_id = cg.id AND sender_id != ${esc(userId)} AND id > COALESCE(cgm2.last_read_at::bigint, 0)) AS unread_count,
+        (SELECT COUNT(*)::int FROM chat_group_members WHERE group_id = cg.id) AS member_count,
         COALESCE(cgm.is_pinned, FALSE) AS is_pinned,
-        COALESCE(cgm.is_muted, FALSE) AS is_muted,
-        (SELECT COUNT(*)::int FROM chat_group_members WHERE group_id = cg.id) AS member_count
+        COALESCE(cgm.is_muted, FALSE) AS is_muted
       FROM chat_groups cg
       LEFT JOIN chat_group_members cgm ON cgm.group_id = cg.id AND cgm.user_id = ${esc(userId)}
-      LEFT JOIN chat_group_members cgm2 ON cgm2.group_id = cg.id
-      LEFT JOIN LATERAL (
-        SELECT message_text, message_type, created_at
-        FROM messages WHERE group_id = cg.id AND is_deleted = FALSE
-        ORDER BY created_at DESC LIMIT 1
-      ) lm ON TRUE
       WHERE cgm.user_id IS NOT NULL AND cg.is_archived = FALSE
-      ORDER BY COALESCE(lm.created_at, cg.created_at) DESC
-    `),
-  ])
+      ORDER BY cg.name
+    `) as any[]
+  } catch { groupConvos = [] }
 
-  const all = [...(directConvos as any[]), ...(groupConvos as any[])]
+  const all = [...directConvos, ...groupConvos]
   all.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   return NextResponse.json(all)
@@ -509,22 +507,25 @@ async function handleUserSearch(neonSql: any, request: NextRequest) {
   const userId = params.get('user_id') || '10'
   if (!q || q.length < 2) return NextResponse.json([])
 
+  const likeClause = `ILIKE ${esc('%' + q + '%')}`
   const rows = await neonSql.query(`
-    SELECT u.id, COALESCE(s.full_name, e.full_name, u.full_name) AS full_name, u.file_path,
-      CASE WHEN s.id IS NOT NULL THEN 'student' WHEN e.id IS NOT NULL THEN 'employee' ELSE 'admin' END AS role,
-      COALESCE(c.college_name, '') AS college_name,
-      COALESCE(d.department_name, '') AS department_name,
-      COALESCE(jt.title_name, '') AS job_title
-    FROM users u
-    LEFT JOIN students s ON s.id = u.id
-    LEFT JOIN employees e ON e.id = u.id
-    LEFT JOIN colleges c ON c.id = s.college_id
-    LEFT JOIN departments d ON d.id = s.department_id
-    LEFT JOIN job_titles jt ON jt.id = e.job_title_id
-    WHERE u.id != ${esc(userId)}
-      AND (COALESCE(s.full_name, e.full_name, u.full_name) ILIKE ${esc('%' + q + '%')}
-        OR u.email ILIKE ${esc('%' + q + '%')})
-    ORDER BY COALESCE(s.full_name, e.full_name, u.full_name)
+    SELECT id, full_name, email, file_path, 'student' AS role, college_name, department_name, '' AS job_title FROM (
+      SELECT s.id, s.full_name, s.email, s.photo AS file_path, c.college_name, d.department_name
+      FROM students s
+      LEFT JOIN colleges c ON c.id = s.college_id
+      LEFT JOIN departments d ON d.id = s.department_id
+      WHERE s.full_name ${likeClause}
+      UNION ALL
+      SELECT e.id, e.full_name, e.email, NULL AS file_path, '' AS college_name, '' AS department_name
+      FROM employees e
+      WHERE e.full_name ${likeClause}
+      UNION ALL
+      SELECT u.id, u.full_name, u.email, u.file_path, '' AS college_name, '' AS department_name
+      FROM users u
+      WHERE u.full_name ${likeClause} AND u.id != ${esc(userId)}
+    ) combined
+    WHERE id != ${esc(userId)}
+    ORDER BY full_name
     LIMIT 20
   `) as any[]
   return NextResponse.json(rows)

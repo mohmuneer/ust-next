@@ -184,7 +184,7 @@ function MobileLayoutInner({ children }: { children: React.ReactNode }) {
             <img src={systemLogo} alt="" className="h-8 w-8 rounded-lg object-contain" />
           ) : (
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm overflow-hidden" style={{ backgroundColor: 'var(--color-primary, #2563EB)' }}>
-              <img src="/logo.png" alt="" className="h-8 w-8 rounded-lg object-contain" />
+              <img src="/ust-logo.png" alt="" className="h-8 w-8 rounded-lg object-contain" />
             </div>
           )}
           <span

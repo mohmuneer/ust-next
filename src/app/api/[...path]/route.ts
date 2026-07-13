@@ -833,15 +833,49 @@ async function handleSpecialEndpoint(
   if (parts[0] === 'student-schedule' && method === 'GET') {
     const params = request.nextUrl.searchParams
     const studentId = params.get('student_id')
-    if (!studentId) return NextResponse.json([])
-    const rows = await neonSql.query(`
-      SELECT ss.*, ssr.subject_name as study_subject_name
+    if (!studentId) return NextResponse.json({ student: null, subjects: [], schedule: [], semester: null, total_hours: 0, total_subjects: 0 })
+
+    const student = await neonSql.query(`
+      SELECT s.*, c.college_name, d.department_name, sl.level_name, sg.group_name
+      FROM students s
+      LEFT JOIN colleges c ON c.id = s.college_id
+      LEFT JOIN departments d ON d.id = s.department_id
+      LEFT JOIN study_levels sl ON sl.id = s.study_level_id
+      LEFT JOIN study_groups sg ON sg.id = s.study_group_id
+      WHERE s.id = ${esc(studentId)} LIMIT 1
+    `).then((r: any) => r[0] || null)
+
+    const schedules = await neonSql.query(`
+      SELECT ss.*, ssr.subject_name, ssr.subject_code,
+             e.full_name as employee_name,
+             sg2.group_name
       FROM study_schedules ss
       LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id
+      LEFT JOIN employees e ON ss.employee_id = e.id
+      LEFT JOIN study_groups sg2 ON sg2.id = ss.study_group_id
       WHERE ss.study_group_id IN (SELECT study_group_id FROM students WHERE id = ${esc(studentId)})
       ORDER BY ss.day_of_week, ss.start_time
     `)
-    return NextResponse.json(rows)
+
+    const subjectIds = [...new Set(schedules.map((s: any) => s.study_subject_id).filter(Boolean))]
+    const subjects = subjectIds.length > 0 ? await neonSql.query(`
+      SELECT * FROM study_subjects WHERE id IN (${subjectIds.map((id: any) => esc(id)).join(',')})
+    `) : []
+
+    const semester = student?.academic_semester_id ? await neonSql.query(`
+      SELECT id, semester_name FROM academic_semesters WHERE id = ${esc(student.academic_semester_id)} LIMIT 1
+    `).then((r: any) => r[0] || null) : null
+
+    const totalHours = schedules.reduce((sum: number, s: any) => sum + (parseFloat(s.weekly_hours) || 0), 0)
+
+    return NextResponse.json({
+      student,
+      subjects,
+      schedule: schedules,
+      semester,
+      total_hours: totalHours,
+      total_subjects: subjects.length,
+    })
   }
 
   if (fullPath === 'master-timetable' && method === 'GET') {

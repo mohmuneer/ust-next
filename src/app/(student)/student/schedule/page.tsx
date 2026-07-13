@@ -181,7 +181,7 @@ export default function SchedulePage() {
     <div className="max-w-7xl mx-auto space-y-6 print:space-y-4" ref={printRef}>
       {/* ─── Print header (hidden on screen) ─── */}
       <div className="hidden print:flex print:items-center print:gap-4 print:mb-6 print:pb-4 print:border-b print:border-gray-300">
-        <img src="/logo.png" alt="" className="h-12 w-auto" />
+        <img src="/ust-logo.png" alt="" className="h-12 w-auto" />
         <div>
           <h2 className="text-lg font-bold">{studentInfo?.college_name || ''}</h2>
           <p className="text-sm text-gray-500">الجدول الدراسي للطالب</p>

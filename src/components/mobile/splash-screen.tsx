@@ -19,17 +19,12 @@ export default function SplashScreen({
   const [visible, setVisible] = useState(true)
   const [fading, setFading] = useState(false)
 
-  const studentAuth = useStudentAuthStore((s) => s.isAuthenticated)
-  const employeeAuth = useEmployeeAuthStore((s) => s.isAuthenticated)
-
   const handleComplete = useCallback(() => {
     onComplete?.()
-    if (variant === "student") {
-      router.replace(studentAuth ? "/student/dashboard" : "/student/login")
-    } else {
-      router.replace(employeeAuth ? "/dashboard" : "/login")
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(`splash-shown-${variant}`, "1")
     }
-  }, [variant, studentAuth, employeeAuth, router, onComplete])
+  }, [variant, onComplete])
 
   useEffect(() => {
     const fadeTimer = setTimeout(() => {

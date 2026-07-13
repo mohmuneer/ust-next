@@ -28,7 +28,10 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname()
   const { isAuthenticated } = useStudentAuthStore()
   const [hydrated, setHydrated] = useState(false)
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return !sessionStorage.getItem('splash-shown-student')
+  })
 
   const isLoginPage = pathname?.includes('/login')
 

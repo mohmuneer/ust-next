@@ -26,7 +26,10 @@ const facultyNavItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed)
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return !sessionStorage.getItem('splash-shown-faculty')
+  })
 
   if (showSplash) {
     return (

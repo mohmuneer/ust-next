@@ -1,65 +1,49 @@
 import { NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { getSql } from '@/lib/db'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+export const maxDuration = 60
+
 export async function POST() {
   try {
-    const results: string[] = []
     const sqlPath = join(process.cwd(), 'seed-enhancement.sql')
-    const sql = readFileSync(sqlPath, 'utf-8')
+    const raw = readFileSync(sqlPath, 'utf-8')
 
-    const statements = sql
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'))
+    const lines = raw.split('\n')
+    const cleaned: string[] = []
+    let inComment = false
 
-    let successCount = 0
-    let errorCount = 0
-
-    for (const stmt of statements) {
-      try {
-        const upper = stmt.toUpperCase().trim()
-        if (upper.startsWith('BEGIN') || upper.startsWith('COMMIT') || upper.startsWith('ROLLBACK')) {
-          await query(stmt)
-          results.push(`TX: ${upper}`)
-          continue
-        }
-        const r = await query(stmt)
-        const rowCount = (r as { rowCount?: number }).rowCount ?? 0
-        if (upper.startsWith('INSERT')) {
-          results.push(`INSERT: ${rowCount} rows`)
-          successCount++
-        } else if (upper.startsWith('UPDATE')) {
-          results.push(`UPDATE: ${rowCount} rows`)
-          successCount++
-        } else {
-          results.push(`OK: ${upper.substring(0, 50)}`)
-          successCount++
-        }
-      } catch (e: unknown) {
-        const msg = String(e)
-        if (msg.includes('duplicate key') || msg.includes('already exists')) {
-          results.push(`SKIP (dup): ${stmt.substring(0, 60)}`)
-        } else {
-          results.push(`ERROR: ${msg.substring(0, 120)} | STMT: ${stmt.substring(0, 60)}`)
-          errorCount++
-        }
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (trimmed.startsWith('/*')) inComment = true
+      if (inComment) {
+        if (trimmed.includes('*/')) inComment = false
+        continue
       }
+      if (trimmed.startsWith('--') || trimmed.length === 0) continue
+      cleaned.push(line)
     }
 
+    const sql = cleaned.join('\n')
+
+    const neonSql = await getSql()
+    const result = await neonSql.query(sql)
+
+    const rows = Array.isArray(result) ? result : [result]
+    const lastRow = rows[rows.length - 1] as Record<string, unknown> | undefined
+
     return NextResponse.json({
-      success: true,
+      ok: true,
       message: 'تم تعبئة البيانات التجريبية بنجاح',
-      statements_total: statements.length,
-      success: successCount,
-      errors: errorCount,
-      details: results.slice(0, 50),
+      total_lines: cleaned.length,
+      result_rows: rows.length,
+      last_command_tag: lastRow?.commandTag ?? null,
     })
   } catch (error) {
     console.error('Seed demo error:', error)
     return NextResponse.json(
-      { success: false, error: String(error) },
+      { ok: false, error: String(error) },
       { status: 500 }
     )
   }

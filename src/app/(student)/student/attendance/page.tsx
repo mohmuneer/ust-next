@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { UserCheck, UserX, Clock, Calendar, Percent, AlertCircle } from 'lucide-react'
 import { studentApi } from '@/services/student-api'
+import { PageErrorWrapper } from '@/components/ui/page-error-wrapper'
 
 export default function AttendancePage() {
   const [sessions, setSessions] = useState<any[]>([])
@@ -29,6 +30,7 @@ export default function AttendancePage() {
   if (loading) return <div className="max-w-4xl mx-auto text-center py-20 text-gray-400">جاري التحميل...</div>
 
   return (
+    <PageErrorWrapper>
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold">الحضور والانصراف</h1>
@@ -117,5 +119,6 @@ export default function AttendancePage() {
         </div>
       )}
     </div>
+    </PageErrorWrapper>
   )
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Award, BookOpen, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
 import { studentApi } from '@/services/student-api'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
+import { PageErrorWrapper } from '@/components/ui/page-error-wrapper'
 
 export default function GradesPage() {
   const { student } = useStudentAuthStore()
@@ -47,6 +48,7 @@ export default function GradesPage() {
   const currentGpa = semesterGpa[0]
 
   return (
+    <PageErrorWrapper>
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold">الدرجات</h1>
@@ -127,5 +129,6 @@ export default function GradesPage() {
         </div>
       )}
     </div>
+    </PageErrorWrapper>
   )
 }

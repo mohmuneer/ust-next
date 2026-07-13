@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 import { studentScheduleService } from '@/services/student-schedule.service'
+import { PageErrorWrapper } from '@/components/ui/page-error-wrapper'
 
 const DAYS_MAP: Record<string, string> = {
   saturday: 'السبت', sunday: 'الأحد', monday: 'الإثنين',
@@ -178,6 +179,7 @@ export default function SchedulePage() {
   }
 
   return (
+    <PageErrorWrapper>
     <div className="max-w-7xl mx-auto space-y-6 print:space-y-4" ref={printRef}>
       {/* ─── Print header (hidden on screen) ─── */}
       <div className="hidden print:flex print:items-center print:gap-4 print:mb-6 print:pb-4 print:border-b print:border-gray-300">
@@ -518,6 +520,7 @@ export default function SchedulePage() {
         }
       `}</style>
     </div>
+    </PageErrorWrapper>
   )
 }
 

@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 import { useStudentAuthStore } from '@/store/useStudentAuthStore'
 import { studentDashboardService, type DashboardData } from '@/services/student-dashboard.service'
+import { ErrorBoundary, PageErrorFallback } from '@/components/ui/error-boundary'
+import { DashboardSkeleton } from '@/components/ui/skeleton'
 
 const DAYS_MAP: Record<string, string> = {
   saturday: 'السبت', sunday: 'الأحد', monday: 'الإثنين',
@@ -49,31 +51,10 @@ export default function StudentDashboardPage() {
 
   if (!hydrated) return null
 
-  if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto space-y-6">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
-            <div className="h-3 bg-gray-100 rounded w-2/3" />
-          </div>
-        ))}
-      </div>
-    )
-  }
+  if (loading) return <DashboardSkeleton />
 
   if (error) {
-    return (
-      <div className="max-w-5xl mx-auto flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 text-red-400 mx-auto" />
-          <p className="text-gray-600 font-medium">{error}</p>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-white rounded-xl text-sm">
-            إعادة المحاولة
-          </button>
-        </div>
-      </div>
-    )
+    return <PageErrorFallback title="فشل تحميل البيانات" message={error} />
   }
 
   const s = data?.student || student
@@ -81,6 +62,7 @@ export default function StudentDashboardPage() {
   const photo = s?.photo ? (s.photo.startsWith('/') ? s.photo : `/uploads/${s.photo}`) : null
 
   return (
+    <ErrorBoundary fallback={<DashboardSkeleton />}>
     <div className="max-w-5xl mx-auto space-y-6">
 
       {/* ─── Welcome Card ─── */}
@@ -357,5 +339,6 @@ export default function StudentDashboardPage() {
       )}
 
     </div>
+    </ErrorBoundary>
   )
 }

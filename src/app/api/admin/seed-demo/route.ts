@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     for (const stmt of statements) {
       try {
-        await neonSql.unsafe(stmt)
+        await neonSql.query(neonSql.unsafe(stmt))
         successCount++
       } catch (e: unknown) {
         const msg = String(e)

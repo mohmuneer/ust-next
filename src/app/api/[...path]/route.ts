@@ -138,6 +138,7 @@ const TABLE_MAP: Record<string, string> = {
   'notification-logs': 'notification_logs',
   'exam-answers': 'exam_answers',
   'exam-security-logs': 'exam_security_logs',
+  'exam-assignments': 'exam_assignments',
 }
 
 function esc(val: unknown): string {
@@ -724,6 +725,101 @@ async function handleSpecialEndpoint(
 ) {
   if (fullPath === 'dashboard/stats' && method === 'GET') {
     return handleDashboardStats(neonSql)
+  }
+
+  if (fullPath === 'employee-options' && method === 'GET') {
+    const params = request.nextUrl.searchParams
+    const employeeId = params.get('employee_id')
+    const collegeId = params.get('college_id')
+    const departmentId = params.get('department_id')
+    const subjectId = params.get('subject_id')
+    const levelId = params.get('level_id')
+
+    // If no employee_id, return all data (admin mode)
+    if (!employeeId) {
+      const colleges = await neonSql.query(`SELECT DISTINCT id, college_name FROM colleges ORDER BY college_name`)
+      if (collegeId) {
+        const departments = await neonSql.query(`SELECT DISTINCT d.id, d.department_name FROM departments d WHERE d.college_id = ${esc(collegeId)} ORDER BY d.department_name`)
+        if (departmentId) {
+          const subjects = await neonSql.query(`SELECT DISTINCT ssr.id, ssr.subject_name, ssr.subject_code, ssr.weekly_hours FROM study_subjects ssr WHERE ssr.department_id = ${esc(departmentId)} ORDER BY ssr.subject_name`)
+          if (subjectId) {
+            const levels = await neonSql.query(`SELECT DISTINCT sl.id, sl.level_name FROM study_levels sl JOIN study_subjects ssr ON sl.id = ssr.study_level_id WHERE ssr.id = ${esc(subjectId)} ORDER BY sl.level_name`)
+            if (levelId) {
+              const groups = await neonSql.query(`SELECT DISTINCT sg.id, sg.group_name, sg.group_type FROM study_groups sg JOIN students st ON sg.id = st.study_group_id WHERE st.study_level_id = ${esc(levelId)} AND (st.department_id = ${esc(departmentId)} OR sg.college_id = ${esc(collegeId)}) ORDER BY sg.group_name`)
+              return NextResponse.json({ colleges, departments, subjects, levels, groups })
+            }
+            return NextResponse.json({ colleges, departments, subjects, levels, groups: [] })
+          }
+          return NextResponse.json({ colleges, departments, subjects, levels: [], groups: [] })
+        }
+        return NextResponse.json({ colleges, departments, subjects: [], levels: [], groups: [] })
+      }
+      return NextResponse.json({ colleges, departments: [], subjects: [], levels: [], groups: [] })
+    }
+
+    // Employee mode: get data from employee_assignments
+    const colleges = await neonSql.query(`
+      SELECT DISTINCT c.id, c.college_name
+      FROM employee_assignments ea
+      JOIN colleges c ON c.id = ea.branch_id OR c.id = (
+        SELECT d.college_id FROM departments d WHERE d.id = ea.department_id
+      )
+      WHERE ea.employee_id = ${esc(employeeId)}
+      ORDER BY c.college_name
+    `)
+    if (!collegeId) return NextResponse.json({ colleges, departments: [], subjects: [], levels: [], groups: [] })
+
+    const departments = await neonSql.query(`
+      SELECT DISTINCT d.id, d.department_name
+      FROM employee_assignments ea
+      JOIN departments d ON d.id = ea.department_id
+      WHERE ea.employee_id = ${esc(employeeId)} AND d.college_id = ${esc(collegeId)}
+      ORDER BY d.department_name
+    `)
+    if (!departmentId) return NextResponse.json({ colleges, departments, subjects: [], levels: [], groups: [] })
+
+    const subjects = await neonSql.query(`
+      SELECT DISTINCT ssr.id, ssr.subject_name, ssr.subject_code, ssr.weekly_hours
+      FROM employee_assignments ea
+      JOIN study_subjects ssr ON ssr.id = ea.study_subject_id
+      WHERE ea.employee_id = ${esc(employeeId)} AND ssr.department_id = ${esc(departmentId)}
+      ORDER BY ssr.subject_name
+    `)
+    if (!subjectId) return NextResponse.json({ colleges, departments, subjects, levels: [], groups: [] })
+
+    const levels = await neonSql.query(`
+      SELECT DISTINCT sl.id, sl.level_name
+      FROM study_levels sl
+      JOIN study_subjects ssr ON sl.id = ssr.study_level_id
+      WHERE ssr.id = ${esc(subjectId)}
+      ORDER BY sl.level_name
+    `)
+    if (!levelId) return NextResponse.json({ colleges, departments, subjects, levels, groups: [] })
+
+    const groups = await neonSql.query(`
+      SELECT DISTINCT sg.id, sg.group_name, sg.group_type
+      FROM study_groups sg
+      JOIN students st ON sg.id = st.study_group_id
+      WHERE st.study_level_id = ${esc(levelId)} AND st.department_id = ${esc(departmentId)}
+      ORDER BY sg.group_name
+    `)
+    return NextResponse.json({ colleges, departments, subjects, levels, groups })
+  }
+
+  if (fullPath === 'exam-assignments-batch' && method === 'POST') {
+    const body = await request.json()
+    const { exam_id, assignments, academic_semester_id } = body
+    if (!exam_id || !Array.isArray(assignments)) {
+      return NextResponse.json({ error: 'Missing exam_id or assignments' }, { status: 400 })
+    }
+    await neonSql.query(`DELETE FROM exam_assignments WHERE exam_id = ${esc(exam_id)}`)
+    for (const a of assignments) {
+      await neonSql.query(`
+        INSERT INTO exam_assignments (exam_id, college_id, department_id, study_level_id, study_group_id, academic_semester_id)
+        VALUES (${esc(exam_id)}, ${esc(a.college_id || null)}, ${esc(a.department_id || null)}, ${esc(a.study_level_id || null)}, ${esc(a.study_group_id || null)}, ${esc(academic_semester_id || null)})
+      `)
+    }
+    return NextResponse.json({ success: true, count: assignments.length })
   }
 
   if (fullPath === 'attendance-logs' && method === 'GET') {

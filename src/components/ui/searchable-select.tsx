@@ -18,6 +18,7 @@ interface SearchableSelectProps {
   value: string | number
   onChange: (value: string | number) => void
   className?: string
+  disabled?: boolean
 }
 
 export function SearchableSelect({
@@ -29,6 +30,7 @@ export function SearchableSelect({
   value,
   onChange,
   className,
+  disabled = false,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -75,15 +77,17 @@ export function SearchableSelect({
       <div
         role="combobox"
         aria-expanded={isOpen}
-        tabIndex={0}
+        aria-disabled={disabled}
+        tabIndex={disabled ? -1 : 0}
         className={cn(
-          'flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm cursor-pointer items-center gap-2 transition-colors',
+          'flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm items-center gap-2 transition-colors',
+          disabled ? 'opacity-50 cursor-not-allowed bg-muted' : 'cursor-pointer',
           'focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary',
           error && 'border-danger focus-within:ring-danger/50',
           className
         )}
-        onClick={() => { setIsOpen(!isOpen); setSearch('') }}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsOpen(!isOpen); setSearch('') } }}
+        onClick={() => { if (!disabled) { setIsOpen(!isOpen); setSearch('') } }}
+        onKeyDown={(e) => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setIsOpen(!isOpen); setSearch('') } }}
       >
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <span className={cn('flex-1 truncate', String(value) === '0' && 'text-muted-foreground')}>

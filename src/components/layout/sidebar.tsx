@@ -108,6 +108,7 @@ const menuGroups: MenuGroup[] = [
         title: 'nav.ePortal', icon: GraduationCap,
         children: [
           { title: 'nav.exams', href: '/exams', pageKey: 'exams' },
+          { title: 'nav.examAssignments', href: '/exam-assignments', pageKey: 'exam-assignments' },
           { title: 'nav.courseSyllabi', href: '/course-syllabi', pageKey: 'course-syllabi' },
           { title: 'nav.examSchedules', href: '/exam-schedules', pageKey: 'exam-schedules' },
           { title: 'nav.examSeating', href: '/exam-seating', pageKey: 'exam-seating' },

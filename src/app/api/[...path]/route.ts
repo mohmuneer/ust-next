@@ -912,7 +912,8 @@ async function handleSpecialEndpoint(
     const studentSemesterId = student.academic_semester_id
 
     const schedules = await neonSql.query(`
-      SELECT ss.id, ss.day_of_week, ss.start_time, ss.end_time, ss.room, ss.notes,
+      SELECT DISTINCT ON (ss.id)
+             ss.id, ss.day_of_week, ss.start_time, ss.end_time, ss.room, ss.notes,
              ss.study_subject_id, ss.employee_id, ss.external_employee_id,
              ss.study_group_id, ss.study_level_id, ss.college_id,
              LOWER(ss.day_of_week) as day_key,
@@ -925,15 +926,26 @@ async function handleSpecialEndpoint(
              sg2.group_name, sg2.group_type,
              c2.college_name, d2.department_name
       FROM study_schedules ss
-      LEFT JOIN study_subjects ssr ON ss.study_subject_id = ssr.id
-      LEFT JOIN employees e ON ss.employee_id = e.id
-      LEFT JOIN external_employees ee ON ss.external_employee_id = ee.id
+      LEFT JOIN LATERAL (
+        SELECT subject_name, subject_code, weekly_hours, department_id
+        FROM study_subjects WHERE id = ss.study_subject_id LIMIT 1
+      ) ssr ON true
+      LEFT JOIN LATERAL (
+        SELECT full_name, email, phone, academic_degree
+        FROM employees WHERE id = ss.employee_id LIMIT 1
+      ) e ON true
+      LEFT JOIN LATERAL (
+        SELECT full_name, email, phone
+        FROM external_employees WHERE id = ss.external_employee_id LIMIT 1
+      ) ee ON true
       LEFT JOIN study_groups sg2 ON sg2.id = ss.study_group_id
       LEFT JOIN colleges c2 ON c2.id = ss.college_id
-      LEFT JOIN departments d2 ON d2.id = ssr.department_id
+      LEFT JOIN LATERAL (
+        SELECT department_name FROM departments WHERE id = ssr.department_id LIMIT 1
+      ) d2 ON true
       WHERE ss.study_group_id = ${esc(student.study_group_id)}
         AND (ss.academic_semester_id = ${esc(studentSemesterId)} OR ss.academic_semester_id IS NULL)
-      ORDER BY CASE LOWER(ss.day_of_week)
+      ORDER BY ss.id, CASE LOWER(ss.day_of_week)
         WHEN 'saturday' THEN 1 WHEN 'sunday' THEN 2 WHEN 'monday' THEN 3
         WHEN 'tuesday' THEN 4 WHEN 'wednesday' THEN 5 WHEN 'thursday' THEN 6
         ELSE 7 END, ss.start_time
@@ -941,13 +953,15 @@ async function handleSpecialEndpoint(
 
     const subjectIds = [...new Set(schedules.map((s: any) => s.study_subject_id).filter(Boolean))]
     const subjects = subjectIds.length > 0 ? await neonSql.query(`
-      SELECT ssr.id, ssr.subject_name, ssr.subject_code, ssr.weekly_hours,
+      SELECT DISTINCT ON (ssr.id)
+             ssr.id, ssr.subject_name, ssr.subject_code, ssr.weekly_hours,
              ssr.department_id, ssr.college_id, ssr.study_level_id,
              d.department_name, c.college_name
       FROM study_subjects ssr
       LEFT JOIN departments d ON d.id = ssr.department_id
       LEFT JOIN colleges c ON c.id = ssr.college_id
       WHERE ssr.id IN (${subjectIds.map((id: any) => esc(id)).join(',')})
+      ORDER BY ssr.id
     `) : []
 
     const semester = studentSemesterId ? await neonSql.query(`
